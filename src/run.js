@@ -329,7 +329,7 @@ async function main() {
   const runUrl = buildRunUrl(owner, repo);
 
   // Upload artifacts
-  const artifactClient = artifact.create();
+  const artifactClient = artifact.create ? artifact.create() : new artifact.DefaultArtifactClient();
   const files = await listFilesRecursive(visual.outDir);
   const upload = await artifactClient.uploadArtifact(artifactName, files, visual.outDir, {
     retentionDays: 7,
