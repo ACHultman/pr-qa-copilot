@@ -113,10 +113,12 @@ If you’re piloting this on a customer repo, we typically need:
 See: **[`docs/pilot-onboarding.md`](./docs/pilot-onboarding.md)**.
 
 ## Pricing (pilot)
-Pilot pricing is intentionally simple:
-- **$200–$500/mo per repo**
+Pilot pricing scales with team size:
+- **$99/repo/mo** — small teams (≤ 10 engineers)
+- **$149/repo/mo** — mid-size teams (11–40 engineers)
+- **$249/repo/mo** — larger teams (41–100 engineers)
 - includes **onboarding**
-- includes **10 hours/month of tuning + support** (routes, auth, timeouts/flakes)
+- includes **tuning + support** (routes, auth, timeouts/flakes)
 
 ## Pilot agreement (plain-English)
 What we promise:
