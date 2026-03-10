@@ -32,6 +32,13 @@ inputs:
     description: "Name for the uploaded artifact."
     required: false
     default: "pr-qa-copilot"
+  license_key:
+    description: "Optional. Pro license key (enables gated features like visual diffs)."
+    required: false
+  license_server_url:
+    description: "Optional. License server base URL (default: https://prqacopilot.com)."
+    required: false
+    default: "https://prqacopilot.com"
 
 outputs:
   artifact_name:
@@ -75,6 +82,8 @@ runs:
         INPUT_OPENAI_MODEL: ${{ inputs.openai_model }}
         INPUT_MAX_DIFF_CHARS: ${{ inputs.max_diff_chars }}
         INPUT_ARTIFACT_NAME: ${{ inputs.artifact_name }}
+        INPUT_LICENSE_KEY: ${{ inputs.license_key }}
+        INPUT_LICENSE_SERVER_URL: ${{ inputs.license_server_url }}
       run: |
         node "${{ github.action_path }}/scripts/run.js"
 

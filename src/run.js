@@ -44,6 +44,25 @@ function buildRunUrl(owner, repo) {
   return `https://github.com/${owner}/${repo}/actions/runs/${runId}`;
 }
 
+async function validateLicense({ licenseKey, licenseServerUrl }) {
+  if (!licenseKey) return { valid: false, reason: 'missing' };
+
+  const base = (licenseServerUrl || '').replace(/\/$/, '');
+  if (!base) return { valid: false, reason: 'no_server_url' };
+
+  try {
+    const url = `${base}/api/validate?key=${encodeURIComponent(licenseKey)}`;
+    const res = await fetch(url, { method: 'GET' });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data && data.valid) {
+      return { valid: true, plan: data.plan || 'pro' };
+    }
+    return { valid: false, reason: data?.error || 'invalid' };
+  } catch {
+    return { valid: false, reason: 'validate_failed' };
+  }
+}
+
 async function summarizePR({ octokit, owner, repo, prNumber, openaiApiKey, openaiModel, maxDiffChars }) {
   const pr = await octokit.rest.pulls.get({ owner, repo, pull_number: prNumber });
 
@@ -126,7 +145,7 @@ ${diffText}
   return { mode: 'openai', deterministic, llmMarkdown };
 }
 
-async function runVisualQA({ baseUrl, paths, viewport, workspace }) {
+async function runVisualQA({ baseUrl, paths, viewport, workspace, enableDiffs }) {
   const outDir = path.join(workspace, 'pr-qa-artifacts');
   const screenshotsDir = path.join(outDir, 'screenshots');
   const diffsDir = path.join(outDir, 'diffs');
@@ -153,7 +172,7 @@ async function runVisualQA({ baseUrl, paths, viewport, workspace }) {
         await page.waitForTimeout(750);
         await page.screenshot({ path: shotPath, fullPage: true });
 
-        if (fs.existsSync(baselinePath)) {
+        if (enableDiffs && fs.existsSync(baselinePath)) {
           const a = await readPng(baselinePath);
           const b = await readPng(shotPath);
 
@@ -176,7 +195,12 @@ async function runVisualQA({ baseUrl, paths, viewport, workspace }) {
 
           results.push({ path: p, url, status: diffPixels === 0 ? 'OK' : 'DIFF', mismatch });
         } else {
-          results.push({ path: p, url, status: 'NEW_BASELINE', mismatch: null });
+          results.push({
+            path: p,
+            url,
+            status: enableDiffs ? 'NEW_BASELINE' : 'CAPTURED',
+            mismatch: null,
+          });
         }
       } catch (e) {
         results.push({
@@ -296,6 +320,11 @@ async function main() {
 
   core.info(`PR QA Copilot running for ${owner}/${repo}#${prNumber}`);
 
+  const licenseKey = core.getInput('license_key') || '';
+  const licenseServerUrl = core.getInput('license_server_url') || 'https://prqacopilot.com';
+  const license = await validateLicense({ licenseKey, licenseServerUrl });
+  const enableDiffs = Boolean(license.valid);
+
   const [summary, visual] = await Promise.all([
     summarizePR({
       octokit,
@@ -311,6 +340,7 @@ async function main() {
       paths,
       viewport,
       workspace: process.env.GITHUB_WORKSPACE || process.cwd(),
+      enableDiffs,
     }),
   ]);
 
@@ -321,6 +351,14 @@ async function main() {
   core.setOutput('artifact_dir', visual.outDir);
 
   const visualMd = renderVisualMarkdown(visual.results);
+
+  const licenseNotice = enableDiffs
+    ? ''
+    : `
+
+---
+
+> ⚠️ Visual diffs are disabled (no valid license key). Add \`license_key\` to the Action inputs to enable Pro features.`;
 
   const deterministic = summary.deterministic;
   const deterministicMd = `### PR Summary (deterministic)\n\n- **Title:** ${deterministic.title}\n- **Author:** @${deterministic.author}\n- **Files:** ${deterministic.changedFiles}\n- **Add/Delete:** +${deterministic.additions} / -${deterministic.deletions}\n\nTop files:\n${deterministic.files
@@ -333,7 +371,7 @@ async function main() {
       ? `\n\n### PR Summary (OpenAI)\n\n${summary.llmMarkdown}`
       : '';
 
-  const commentBody = `## PR QA Copilot\n\n${deterministicMd}${llmMd}\n\n### Visual QA\n\nBase URL: \`${baseUrl}\`\n\n${visualMd}\n\n**Artifact:** \`${artifactName}\` (screenshots + gallery)\n${runUrl ? `\nRun: ${runUrl}\n` : ''}\n\n> Tip: Commit baseline screenshots to \`.pr-qa-baseline/*.png\` to enable pixel diffs.`;
+  const commentBody = `## PR QA Copilot\n\n${deterministicMd}${llmMd}\n\n### Visual QA\n\nBase URL: \`${baseUrl}\`\n\n${visualMd}\n\n**Artifact:** \`${artifactName}\` (screenshots + gallery)\n${runUrl ? `\nRun: ${runUrl}\n` : ''}\n\n> Tip: Commit baseline screenshots to \`.pr-qa-baseline/*.png\` to enable pixel diffs.${licenseNotice}`;
 
   await upsertComment({ octokit, owner, repo, prNumber, body: commentBody });
 
