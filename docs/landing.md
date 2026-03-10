@@ -8,7 +8,7 @@ Automated PR reviews with Playwright.
 - Optional **pixel diffs** (Pro) when you commit baselines
 
 ## Why this exists
-PR review bottlenecks are usually visual QA bottlenecks:
+PR review bottlenecks are often visual QA bottlenecks:
 - Somebody manually clicks through the app and grabs screenshots
 - Subtle layout regressions slip through
 - Reviewers waste time on setup instead of reviewing changes
@@ -23,9 +23,12 @@ PR QA Copilot makes the artifact automatic and keeps it attached to the PR.
 4) (Pro) If you commit baselines, it generates pixel diffs
 
 ## Pricing (pilot)
-Pilot pricing is intentionally simple:
-- **$200–$500/mo per repo**
-- Includes onboarding + tuning for flakes/timeouts
+Pilot pricing scales with team size:
+- **$99/repo/mo** — small teams (≤ 10 engineers)
+- **$149/repo/mo** — mid-size teams (11–40 engineers)
+- **$249/repo/mo** — larger teams (41–100 engineers)
+
+All tiers include onboarding + tuning for flakes/timeouts. Less than a single day of senior engineer time per month.
 
 ## Next step
 Follow **[`docs/pilot-onboarding.md`](./pilot-onboarding.md)** or jump straight to install:
