@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <style>
+      .bg{fill:#0b1020}
+      .card{fill:#111827;stroke:#334155;stroke-width:2}
+      .h1{fill:#e5e7eb;font:700 44px system-ui,-apple-system,Segoe UI,Roboto,Arial}
+      .p{fill:#cbd5e1;font:400 22px system-ui,-apple-system,Segoe UI,Roboto,Arial}
+      .code{fill:#93c5fd;font:500 18px ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+      .tag{fill:#1f2937;stroke:#334155;stroke-width:1}
+      .tagt{fill:#e5e7eb;font:600 16px system-ui,-apple-system,Segoe UI,Roboto,Arial}
+    </style>
+  </defs>
+  <rect class="bg" x="0" y="0" width="1200" height="630"/>
+  <rect class="card" x="60" y="70" rx="18" width="1080" height="490"/>
+  <text class="h1" x="100" y="145">PR QA Copilot — PR Comment</text>
+  <text class="p" x="100" y="205">• Deterministic summary (files + LOC)</text>
+  <text class="p" x="100" y="245">• Optional OpenAI summary (risks + QA steps)</text>
+  <text class="p" x="100" y="285">• Visual QA table + artifact link</text>
+
+  <rect class="tag" x="100" y="330" rx="999" width="170" height="36"/>
+  <text class="tagt" x="118" y="354">Artifact uploaded</text>
+
+  <text class="code" x="100" y="420">| `/pricing` | DIFF | 3.12% |</text>
+  <text class="code" x="100" y="450">| `/`        | OK   |       |</text>
+  <text class="p" x="100" y="520">(Placeholder image — replace with real screenshots in your pilot.)</text>
+</svg>
