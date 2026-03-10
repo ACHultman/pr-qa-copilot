@@ -30,7 +30,12 @@ A short list of routes that represent your main user journeys, e.g.:
 
 Start with **5–15** routes. More is fine, but can increase run time.
 
-### 4) Auth requirements (if any)
+### 4) Pro features (license key)
+Pixel diffs (and other Pro-only features) require a license key:
+- You&apos;ll set `license_key` in the action inputs (usually wired from a repo secret like `PR_QA_LICENSE_KEY`).
+- Without a valid key, the action still captures screenshots + uploads the gallery artifact, but skips diffs.
+
+## 5) Auth requirements (if any)
 If your app requires login, we need one of:
 - a test user credential stored in GitHub Secrets, or
 - a magic-link flow we can automate, or

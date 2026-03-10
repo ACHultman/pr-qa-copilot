@@ -8,6 +8,10 @@ Designed to be easy to pilot with dev shops: “every PR gets a review comment +
 |---|---|---|
 | ![PR comment](./screenshots/pr-comment.svg) | ![Artifact gallery](./screenshots/artifact-gallery.svg) | ![Diff example](./screenshots/diff-example.svg) |
 
+Quick links:
+- Landing (send to pilots): **[`docs/landing.md`](./docs/landing.md)**
+- Install (5 minutes): **[`docs/install.md`](./docs/install.md)**
+
 ## What it does
 - Creates/updates a single PR comment (idempotent) with:
   - deterministic PR summary (files changed + LOC)
@@ -48,6 +52,8 @@ jobs:
             /
             /pricing
             /docs
+          # Optional: enable Pro-only features (e.g., pixel diffs)
+          license_key: ${{ secrets.PR_QA_LICENSE_KEY }}
 ```
 
 ### Inputs
@@ -61,6 +67,10 @@ jobs:
 | `openai_api_key` | no | — | If set, generates enhanced PR summary |
 | `openai_model` | no | `gpt-4o-mini` | Model used for summary |
 | `max_diff_chars` | no | `12000` | PR diff truncation limit for LLM |
+| `license_key` | no | — | Pro license key (enables gated features like pixel diffs) |
+| `license_server_url` | no | `https://prqacopilot.com` | License server base URL for key validation |
+
+Pro licensing setup (Stripe + validation endpoint): **[`docs/licensing.md`](./docs/licensing.md)**.
 
 ### Artifact contents
 A workflow artifact (default name: `pr-qa-copilot`) containing:
