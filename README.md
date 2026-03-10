@@ -30,6 +30,7 @@ on:
 permissions:
   contents: read
   pull-requests: write
+  actions: write # required for artifact upload
 
 jobs:
   pr-qa:
