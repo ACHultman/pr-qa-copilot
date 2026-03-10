@@ -2,7 +2,6 @@
 
 const core = require('@actions/core');
 const github = require('@actions/github');
-const artifact = require('@actions/artifact');
 const path = require('path');
 const fs = require('fs');
 const fsp = require('fs/promises');
@@ -23,17 +22,6 @@ function mustGetInput(name) {
 function getInput(name, fallback) {
   const v = core.getInput(name);
   return v ? v : fallback;
-}
-
-async function listFilesRecursive(dir) {
-  const out = [];
-  const entries = await fsp.readdir(dir, { withFileTypes: true });
-  for (const e of entries) {
-    const full = path.join(dir, e.name);
-    if (e.isDirectory()) out.push(...(await listFilesRecursive(full)));
-    else out.push(full);
-  }
-  return out;
 }
 
 async function ensureDir(dir) {
@@ -328,15 +316,9 @@ async function main() {
 
   const runUrl = buildRunUrl(owner, repo);
 
-  // Upload artifacts
-  const artifactClient = artifact.create ? artifact.create() : new artifact.DefaultArtifactClient();
-  const files = await listFilesRecursive(visual.outDir);
-  const upload = await artifactClient.uploadArtifact(artifactName, files, visual.outDir, {
-    retentionDays: 7,
-  });
-
-  core.setOutput('artifact_name', artifactName);
-  core.setOutput('artifact_id', upload.id);
+  // Artifacts are written to visual.outDir (default: <workspace>/pr-qa-artifacts).
+  // Upload is handled by the composite action using actions/upload-artifact.
+  core.setOutput('artifact_dir', visual.outDir);
 
   const visualMd = renderVisualMarkdown(visual.results);
 
@@ -355,7 +337,7 @@ async function main() {
 
   await upsertComment({ octokit, owner, repo, prNumber, body: commentBody });
 
-  core.info(`Uploaded artifact ${artifactName} (id ${upload.id})`);
+  core.info(`Generated visual QA artifacts at ${visual.outDir}`);
 }
 
 module.exports = { main, COMMENT_MARKER };
