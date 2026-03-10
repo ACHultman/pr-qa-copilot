@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <style>
+      .bg{fill:#0b1020}
+      .card{fill:#111827;stroke:#334155;stroke-width:2}
+      .h1{fill:#e5e7eb;font:700 44px system-ui,-apple-system,Segoe UI,Roboto,Arial}
+      .p{fill:#cbd5e1;font:400 22px system-ui,-apple-system,Segoe UI,Roboto,Arial}
+      .boxA{fill:#0f172a;stroke:#334155;stroke-width:2}
+      .boxD{fill:#0f172a;stroke:#ef4444;stroke-width:3}
+      .label{fill:#93c5fd;font:600 18px ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+    </style>
+  </defs>
+  <rect class="bg" x="0" y="0" width="1200" height="630"/>
+  <rect class="card" x="60" y="70" rx="18" width="1080" height="490"/>
+  <text class="h1" x="100" y="145">Pixel Diff (baseline vs. current)</text>
+  <text class="p" x="100" y="205">When a baseline exists in <tspan class="label">.pr-qa-baseline/</tspan>, we generate diffs + mismatch %.</text>
+
+  <rect class="boxA" x="100" y="250" rx="14" width="480" height="280"/>
+  <rect class="boxD" x="620" y="250" rx="14" width="480" height="280"/>
+
+  <text class="label" x="120" y="290">baseline: pricing.png</text>
+  <text class="label" x="640" y="290">diff: pricing.png (3.12%)</text>
+</svg>

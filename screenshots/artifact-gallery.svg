@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <style>
+      .bg{fill:#0b1020}
+      .card{fill:#111827;stroke:#334155;stroke-width:2}
+      .h1{fill:#e5e7eb;font:700 44px system-ui,-apple-system,Segoe UI,Roboto,Arial}
+      .p{fill:#cbd5e1;font:400 22px system-ui,-apple-system,Segoe UI,Roboto,Arial}
+      .thumb{fill:#0f172a;stroke:#334155;stroke-width:2}
+      .t{fill:#93c5fd;font:500 18px ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+    </style>
+  </defs>
+  <rect class="bg" x="0" y="0" width="1200" height="630"/>
+  <rect class="card" x="60" y="70" rx="18" width="1080" height="490"/>
+  <text class="h1" x="100" y="145">Artifact — HTML Gallery</text>
+  <text class="p" x="100" y="205">Uploaded artifact contains screenshots/, diffs/, index.html, summary.json</text>
+
+  <rect class="thumb" x="100" y="250" rx="14" width="310" height="230"/>
+  <rect class="thumb" x="445" y="250" rx="14" width="310" height="230"/>
+  <rect class="thumb" x="790" y="250" rx="14" width="310" height="230"/>
+
+  <text class="t" x="135" y="505">screenshots/home.png</text>
+  <text class="t" x="480" y="505">screenshots/pricing.png</text>
+  <text class="t" x="825" y="505">diffs/pricing.png</text>
+</svg>

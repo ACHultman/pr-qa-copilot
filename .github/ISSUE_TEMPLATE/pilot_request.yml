@@ -1,0 +1,38 @@
+name: Pilot request
+description: Request a pilot / onboarding
+labels: [pilot]
+body:
+  - type: input
+    id: company
+    attributes:
+      label: Company / team
+    validations:
+      required: true
+  - type: input
+    id: contact
+    attributes:
+      label: Contact email
+      placeholder: you@company.com
+    validations:
+      required: true
+  - type: input
+    id: repo
+    attributes:
+      label: GitHub repo(s)
+      placeholder: org/repo
+    validations:
+      required: true
+  - type: textarea
+    id: preview
+    attributes:
+      label: Preview URL details
+      description: Vercel/Netlify? How do we get the preview URL in CI?
+    validations:
+      required: true
+  - type: textarea
+    id: routes
+    attributes:
+      label: Route list
+      description: 5–15 routes to start.
+    validations:
+      required: true

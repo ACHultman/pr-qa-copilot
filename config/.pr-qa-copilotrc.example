@@ -1,0 +1,15 @@
+# Example config you can copy into your repo as .pr-qa-copilotrc
+# (This action currently reads config via workflow `with:` inputs.
+# This file is provided as a convenient place to standardize values.)
+
+base_url: https://<your-preview-host>
+paths:
+  - /
+  - /pricing
+  - /docs
+viewport: 1280x720
+artifact_name: pr-qa-copilot
+
+# Optional (recommended)
+openai_model: gpt-4o-mini
+max_diff_chars: 12000

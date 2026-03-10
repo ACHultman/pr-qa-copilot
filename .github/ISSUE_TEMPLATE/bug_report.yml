@@ -1,0 +1,36 @@
+name: Bug report
+description: Report a bug in PR QA Copilot
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting.
+  - type: input
+    id: repo
+    attributes:
+      label: Repo / PR link
+      placeholder: https://github.com/org/repo/pull/123
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Include logs, screenshots, and artifact links if possible.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: config
+    attributes:
+      label: Workflow config
+      description: Paste the action `with:` config and any relevant env/secrets (redact values).
+      render: yaml
+    validations:
+      required: false
