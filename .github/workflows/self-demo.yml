@@ -1,0 +1,23 @@
+name: PR QA Copilot (self-demo)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  demo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Demo target: example.com (always up). Replace with your Vercel/Netlify preview URL.
+      - uses: ./. 
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          base_url: https://example.com
+          paths: |
+            /

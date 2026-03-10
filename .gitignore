@@ -1,0 +1,6 @@
+node_modules
+/dist
+/.playwright
+/artifacts
+.DS_Store
+.env

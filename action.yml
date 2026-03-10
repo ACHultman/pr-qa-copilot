@@ -1,0 +1,73 @@
+name: "PR QA Copilot"
+description: "Comments a PR summary and generates a Playwright screenshot pack + optional visual diffs."
+author: "Adam Hultman"
+
+inputs:
+  github_token:
+    description: "GitHub token used to comment on PRs (defaults to github.token)."
+    required: true
+  base_url:
+    description: "Base URL to run visual QA against (e.g. Vercel preview URL)."
+    required: true
+  paths:
+    description: "Newline-separated paths to screenshot (e.g. /\n/pricing\n/dashboard)."
+    required: false
+    default: "/\n/build\n/results"
+  viewport:
+    description: "Viewport as WIDTHxHEIGHT (e.g. 1280x720)."
+    required: false
+    default: "1280x720"
+  openai_api_key:
+    description: "Optional. If set, generates a higher-quality PR summary using OpenAI."
+    required: false
+  openai_model:
+    description: "OpenAI model for PR summary."
+    required: false
+    default: "gpt-4o-mini"
+  max_diff_chars:
+    description: "Max characters of diff context to send to LLM (if enabled)."
+    required: false
+    default: "12000"
+  artifact_name:
+    description: "Name for the uploaded artifact."
+    required: false
+    default: "pr-qa-copilot"
+
+outputs:
+  artifact_name:
+    description: "Uploaded artifact name"
+  artifact_id:
+    description: "Uploaded artifact id"
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 20
+
+    - name: Install action deps
+      shell: bash
+      run: |
+        cd "${{ github.action_path }}"
+        npm ci --omit=dev
+
+    - name: Install Playwright (Chromium)
+      shell: bash
+      run: |
+        cd "${{ github.action_path }}"
+        npx playwright install --with-deps chromium
+
+    - name: Run PR QA Copilot
+      shell: bash
+      env:
+        INPUT_GITHUB_TOKEN: ${{ inputs.github_token }}
+        INPUT_BASE_URL: ${{ inputs.base_url }}
+        INPUT_PATHS: ${{ inputs.paths }}
+        INPUT_VIEWPORT: ${{ inputs.viewport }}
+        INPUT_OPENAI_API_KEY: ${{ inputs.openai_api_key }}
+        INPUT_OPENAI_MODEL: ${{ inputs.openai_model }}
+        INPUT_MAX_DIFF_CHARS: ${{ inputs.max_diff_chars }}
+        INPUT_ARTIFACT_NAME: ${{ inputs.artifact_name }}
+      run: |
+        node "${{ github.action_path }}/scripts/run.js"
