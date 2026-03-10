@@ -56,7 +56,8 @@ runs:
       shell: bash
       run: |
         cd "${{ github.action_path }}"
-        npx playwright install --with-deps chromium
+        # Avoid relying on npm bin-linking in production installs.
+        node "./node_modules/playwright/cli.js" install --with-deps chromium
 
     - name: Run PR QA Copilot
       shell: bash
