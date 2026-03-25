@@ -89,7 +89,7 @@ runs:
 
     - name: Upload PR QA Copilot artifact
       id: upload
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: ${{ inputs.artifact_name }}
         path: pr-qa-artifacts
