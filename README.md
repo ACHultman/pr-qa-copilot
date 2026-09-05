@@ -1,6 +1,6 @@
 # PR QA Copilot (GitHub Action)
 
-On every PR, open the preview deployment, catch runtime failures, add static Next.js routes changed by the diff, and leave one QA report with screenshots and optional visual diffs.
+On every PR, open the preview deployment, catch runtime failures, exercise configured critical journeys, add static Next.js routes changed by the diff, and leave one QA report with screenshots and optional visual diffs.
 
 Designed for product teams and agencies that want QA evidence before a human reviewer opens the preview.
 
@@ -19,6 +19,7 @@ Quick links:
   - optional OpenAI summary (risks + QA steps)
   - route-level runtime and visual verdicts
 - Detects static Next.js routes changed by the PR and adds them to your configured smoke-test paths
+- Executes declarative browser journeys for flows such as sign-in, checkout, and cancellation
 - Captures uncaught page errors, console errors, failed same-origin requests, and same-origin HTTP 4xx/5xx responses
 - Runs Playwright against a `base_url` and the selected routes
 - Uploads an artifact containing screenshots, issue details, JSON results, and an HTML gallery
@@ -56,6 +57,7 @@ jobs:
             /
             /pricing
             /docs
+          journey_file: .pr-qa-copilot/journeys.json
           auto_paths: true
           fail_on_issues: false
           # Optional: enable Pro-only features (e.g., pixel diffs)
@@ -68,6 +70,7 @@ jobs:
 | `github_token` | yes | — | Use `${{ secrets.GITHUB_TOKEN }}` |
 | `base_url` | yes | — | Preview/staging URL to screenshot |
 | `paths` | no | `/` | Newline-separated routes |
+| `journey_file` | no | — | JSON file containing critical browser journeys |
 | `auto_paths` | no | `true` | Add static Next.js routes changed by the PR |
 | `viewport` | no | `1280x720` | `WIDTHxHEIGHT` |
 | `wait_after_load_ms` | no | `750` | Extra settle time before checks and screenshot |
@@ -80,12 +83,51 @@ jobs:
 | `license_key` | no | — | Pro license key (enables gated features like pixel diffs) |
 | `license_server_url` | no | `https://pr-qa-copilot.vercel.app` | License server base URL for key validation |
 
+### Critical journeys
+
+Keep stable acceptance flows in the repository and point `journey_file` at the JSON file:
+
+```json
+{
+  "journeys": [
+    {
+      "name": "Sign in and reach billing",
+      "startPath": "/login",
+      "steps": [
+        { "action": "fill", "selector": "#email", "value": "${QA_EMAIL}" },
+        { "action": "fill", "selector": "#password", "value": "${QA_PASSWORD}" },
+        { "action": "click", "selector": "button[type=submit]" },
+        { "action": "click", "selector": "a[href='/settings/billing']" },
+        { "action": "expectText", "selector": "main", "value": "Current plan" },
+        { "action": "expectUrl", "value": "/settings/billing" }
+      ]
+    }
+  ]
+}
+```
+
+Pass test credentials as step environment variables; `${NAME}` placeholders are resolved at runtime:
+
+```yml
+- uses: ACHultman/pr-qa-copilot@v0
+  env:
+    QA_EMAIL: ${{ secrets.PR_QA_TEST_EMAIL }}
+    QA_PASSWORD: ${{ secrets.PR_QA_TEST_PASSWORD }}
+  with:
+    github_token: ${{ secrets.GITHUB_TOKEN }}
+    base_url: ${{ vars.PREVIEW_URL }}
+    journey_file: .pr-qa-copilot/journeys.json
+```
+
+Supported actions are `click`, `fill`, `check`, `select`, `press`, `waitFor`, `expectText`, and `expectUrl`. Use dedicated nonproduction accounts. A file may contain up to 10 journeys with 30 steps each.
+
 Pro licensing setup (Stripe + validation endpoint): **[`docs/licensing.md`](./docs/licensing.md)**.
 
 ### Artifact contents
 A workflow artifact (default name: `pr-qa-copilot`) containing:
 - `screenshots/*.png`
 - `diffs/*.png` (only when baseline exists)
+- `journeys/*.png` (final state or failure state for each configured journey)
 - `index.html` (simple gallery)
 - `summary.json`
 
@@ -156,7 +198,7 @@ Cancelation:
   - Check Actions logs for `@actions/artifact` errors
 
 ## Roadmap
-- Declarative user journeys for auth and billing flows
+- Diff-aware selection so only affected journeys run
 - Stable selectors and visual ignore regions
 - Managed GitHub App installation
 

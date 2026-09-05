@@ -1,0 +1,15 @@
+{
+  "journeys": [
+    {
+      "name": "Example homepage content",
+      "startPath": "/",
+      "steps": [
+        {
+          "action": "expectText",
+          "selector": "h1",
+          "value": "Example Domain"
+        }
+      ]
+    }
+  ]
+}

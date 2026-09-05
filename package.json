@@ -2,7 +2,7 @@
   "name": "pr-qa-copilot",
   "version": "0.2.0",
   "private": true,
-  "description": "GitHub Action: runtime QA, changed-route checks, screenshots, and visual diffs",
+  "description": "GitHub Action: critical journeys, runtime QA, changed-route checks, screenshots, and visual diffs",
   "main": "dist/index.js",
   "scripts": {
     "test": "node --test",

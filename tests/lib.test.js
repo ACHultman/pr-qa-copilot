@@ -9,6 +9,9 @@ const {
   mergePaths,
   safeFileStem,
   renderVisualMarkdown,
+  parseJourneyConfig,
+  resolveJourneyValue,
+  renderJourneyMarkdown,
 } = require('../src/lib');
 
 test('parsePaths trims, filters blank, and ensures leading slash', () => {
@@ -58,4 +61,85 @@ test('renderVisualMarkdown renders a markdown table', () => {
 
   assert.match(md, /\| Path \| Result \| Runtime issues \| Visual change \|/);
   assert.match(md, /\| `\/pricing` \| \*\*VISUAL_DIFF\*\* \| 1 \| 3\.12% \|/);
+});
+
+test('parseJourneyConfig validates and normalizes supported steps', () => {
+  assert.deepEqual(
+    parseJourneyConfig({
+      journeys: [
+        {
+          name: 'Cancel subscription',
+          startPath: '/settings/billing',
+          steps: [
+            { action: 'click', selector: '[data-testid="cancel"]' },
+            { action: 'fill', selector: '#reason', value: '${CANCEL_REASON}' },
+            { action: 'expectText', selector: 'main', value: 'Subscription canceled' },
+            { action: 'expectUrl', value: '/settings/billing?status=canceled' },
+          ],
+        },
+      ],
+    }),
+    [
+      {
+        name: 'Cancel subscription',
+        startPath: '/settings/billing',
+        steps: [
+          { action: 'click', selector: '[data-testid="cancel"]' },
+          { action: 'fill', selector: '#reason', value: '${CANCEL_REASON}' },
+          { action: 'expectText', selector: 'main', value: 'Subscription canceled' },
+          { action: 'expectUrl', value: '/settings/billing?status=canceled' },
+        ],
+      },
+    ],
+  );
+});
+
+test('parseJourneyConfig rejects unsafe paths and unsupported steps', () => {
+  assert.throws(
+    () =>
+      parseJourneyConfig({
+        journeys: [{ name: 'External', startPath: 'https://example.com', steps: [{ action: 'click', selector: 'a' }] }],
+      }),
+    /relative path/,
+  );
+  assert.throws(
+    () =>
+      parseJourneyConfig({
+        journeys: [{ name: 'Shell', startPath: '/', steps: [{ action: 'run', value: 'echo no' }] }],
+      }),
+    /unsupported action/,
+  );
+});
+
+test('resolveJourneyValue expands named environment values and reports missing names', () => {
+  assert.equal(
+    resolveJourneyValue('${TEST_USER}:${TEST_PASSWORD}', {
+      TEST_USER: 'qa@example.com',
+      TEST_PASSWORD: 'not-logged',
+    }),
+    'qa@example.com:not-logged',
+  );
+  assert.throws(() => resolveJourneyValue('${MISSING}', {}), /missing environment variable MISSING/);
+});
+
+test('renderJourneyMarkdown reports completed steps and runtime issues', () => {
+  const markdown = renderJourneyMarkdown([
+    {
+      name: 'Pricing to checkout',
+      status: 'PASSED',
+      stepsCompleted: 3,
+      stepCount: 3,
+      issues: [],
+    },
+    {
+      name: 'Cancel subscription',
+      status: 'ERROR',
+      stepsCompleted: 2,
+      stepCount: 4,
+      issues: [{ type: 'http' }],
+    },
+  ]);
+
+  assert.match(markdown, /\| Pricing to checkout \| \*\*PASSED\*\* \| 3\/3 \| None \|/);
+  assert.match(markdown, /\| Cancel subscription \| \*\*ERROR\*\* \| 2\/4 \| 1 \|/);
 });

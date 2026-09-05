@@ -15,6 +15,9 @@ const {
   mergePaths,
   safeFileStem,
   renderVisualMarkdown,
+  parseJourneyConfig,
+  resolveJourneyValue,
+  renderJourneyMarkdown,
 } = require('./lib');
 
 const COMMENT_MARKER = '<!-- pr-qa-copilot -->';
@@ -81,6 +84,136 @@ function escapeHtml(value) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#039;');
+}
+
+function safeErrorMessage(error) {
+  return (error instanceof Error ? error.message : String(error)).replace(/\s+/g, ' ').slice(0, 500);
+}
+
+function attachRuntimeIssueCollector({ page, issues, baseUrl, ignoreConsolePatterns }) {
+  const onConsole = (message) => {
+    if (message.type() !== 'error') return;
+    const text = message.text();
+    // Chromium mirrors HTTP failures to the console; the response handler below
+    // records the useful status and URL without adding a duplicate issue.
+    if (text.startsWith('Failed to load resource: the server responded with a status of')) {
+      return;
+    }
+    if (!matchesPattern(text, ignoreConsolePatterns)) {
+      issues.push({ type: 'console', severity: 'error', message: text.slice(0, 500) });
+    }
+  };
+  const onPageError = (error) => {
+    issues.push({
+      type: 'page',
+      severity: 'error',
+      message: safeErrorMessage(error),
+    });
+  };
+  const onResponse = (response) => {
+    const request = response.request();
+    const resourceType = request.resourceType();
+    if (
+      response.status() >= 400 &&
+      ['document', 'fetch', 'xhr'].includes(resourceType) &&
+      sameOrigin(response.url(), baseUrl)
+    ) {
+      issues.push({
+        type: 'http',
+        severity: 'error',
+        message: `${response.status()} ${response.url()}`.slice(0, 500),
+      });
+    }
+  };
+  const onRequestFailed = (request) => {
+    if (
+      ['document', 'fetch', 'xhr'].includes(request.resourceType()) &&
+      sameOrigin(request.url(), baseUrl)
+    ) {
+      issues.push({
+        type: 'network',
+        severity: 'error',
+        message: `${request.failure()?.errorText || 'request failed'} ${request.url()}`.slice(0, 500),
+      });
+    }
+  };
+
+  page.on('console', onConsole);
+  page.on('pageerror', onPageError);
+  page.on('response', onResponse);
+  page.on('requestfailed', onRequestFailed);
+
+  return () => {
+    page.off('console', onConsole);
+    page.off('pageerror', onPageError);
+    page.off('response', onResponse);
+    page.off('requestfailed', onRequestFailed);
+  };
+}
+
+async function loadJourneys({ workspace, journeyFile }) {
+  if (!journeyFile) return [];
+  const resolved = path.resolve(workspace, journeyFile);
+  const relative = path.relative(workspace, resolved);
+  if (relative.startsWith('..') || path.isAbsolute(relative)) {
+    throw new Error('journey_file must resolve inside GITHUB_WORKSPACE.');
+  }
+
+  let raw;
+  try {
+    raw = await fsp.readFile(resolved, 'utf8');
+  } catch (error) {
+    if (error?.code === 'ENOENT') {
+      throw new Error(`Journey file not found: ${journeyFile}`);
+    }
+    throw error;
+  }
+  return parseJourneyConfig(raw);
+}
+
+async function runJourneyStep(page, step) {
+  const timeout = step.timeoutMs || 10_000;
+  const locator = step.selector ? page.locator(step.selector).first() : null;
+
+  switch (step.action) {
+    case 'click':
+      await locator.click({ timeout });
+      return;
+    case 'fill':
+      await locator.fill(resolveJourneyValue(step.value), { timeout });
+      return;
+    case 'check':
+      await locator.check({ timeout });
+      return;
+    case 'select':
+      await locator.selectOption(resolveJourneyValue(step.value), { timeout });
+      return;
+    case 'press':
+      await locator.press(resolveJourneyValue(step.value), { timeout });
+      return;
+    case 'waitFor':
+      await locator.waitFor({ state: 'visible', timeout });
+      return;
+    case 'expectText': {
+      await locator.waitFor({ state: 'visible', timeout });
+      const expected = resolveJourneyValue(step.value);
+      const text = (await locator.textContent({ timeout })) || '';
+      if (!text.includes(expected)) {
+        throw new Error(`Expected text was not found in selector "${step.selector}".`);
+      }
+      return;
+    }
+    case 'expectUrl': {
+      const expected = resolveJourneyValue(step.value);
+      await page.waitForURL(
+        (url) => `${url.pathname}${url.search}${url.hash}` === expected,
+        { timeout },
+      );
+      return;
+    }
+    default:
+      throw new Error(`Unsupported journey action: ${step.action}`);
+  }
 }
 
 async function validateLicense({ licenseKey, licenseServerUrl }) {
@@ -187,6 +320,7 @@ ${diffText}
 async function runVisualQA({
   baseUrl,
   paths,
+  journeys,
   viewport,
   workspace,
   enableDiffs,
@@ -196,12 +330,15 @@ async function runVisualQA({
   const outDir = path.join(workspace, 'pr-qa-artifacts');
   const screenshotsDir = path.join(outDir, 'screenshots');
   const diffsDir = path.join(outDir, 'diffs');
+  const journeysDir = path.join(outDir, 'journeys');
   const baselineDir = path.join(workspace, '.pr-qa-baseline');
 
   await ensureDir(screenshotsDir);
   await ensureDir(diffsDir);
+  await ensureDir(journeysDir);
 
   const results = [];
+  const journeyResults = [];
 
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport });
@@ -215,60 +352,12 @@ async function runVisualQA({
       const diffPath = path.join(diffsDir, `${stem}.png`);
 
       const issues = [];
-      const onConsole = (message) => {
-        if (message.type() !== 'error') return;
-        const text = message.text();
-        // Chromium mirrors HTTP failures to the console; the response handler below
-        // records the useful status and URL without adding a duplicate issue.
-        if (text.startsWith('Failed to load resource: the server responded with a status of')) {
-          return;
-        }
-        if (!matchesPattern(text, ignoreConsolePatterns)) {
-          issues.push({ type: 'console', severity: 'error', message: text.slice(0, 500) });
-        }
-      };
-      const onPageError = (error) => {
-        issues.push({
-          type: 'page',
-          severity: 'error',
-          message: (error?.message || String(error)).slice(0, 500),
-        });
-      };
-      const onResponse = (response) => {
-        const request = response.request();
-        const resourceType = request.resourceType();
-        if (
-          response.status() >= 400 &&
-          ['document', 'fetch', 'xhr'].includes(resourceType) &&
-          sameOrigin(response.url(), baseUrl)
-        ) {
-          issues.push({
-            type: 'http',
-            severity: 'error',
-            message: `${response.status()} ${response.url()}`.slice(0, 500),
-          });
-        }
-      };
-      const onRequestFailed = (request) => {
-        if (
-          ['document', 'fetch', 'xhr'].includes(request.resourceType()) &&
-          sameOrigin(request.url(), baseUrl)
-        ) {
-          issues.push({
-            type: 'network',
-            severity: 'error',
-            message: `${request.failure()?.errorText || 'request failed'} ${request.url()}`.slice(
-              0,
-              500,
-            ),
-          });
-        }
-      };
-
-      page.on('console', onConsole);
-      page.on('pageerror', onPageError);
-      page.on('response', onResponse);
-      page.on('requestfailed', onRequestFailed);
+      const detachRuntimeIssues = attachRuntimeIssueCollector({
+        page,
+        issues,
+        baseUrl,
+        ignoreConsolePatterns,
+      });
 
       try {
         await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45_000 });
@@ -316,10 +405,71 @@ async function runVisualQA({
           error: e instanceof Error ? e.message : String(e),
         });
       } finally {
-        page.off('console', onConsole);
-        page.off('pageerror', onPageError);
-        page.off('response', onResponse);
-        page.off('requestfailed', onRequestFailed);
+        detachRuntimeIssues();
+      }
+    }
+
+    for (const [index, journey] of journeys.entries()) {
+      const journeyPage = await browser.newPage({ viewport });
+      const issues = [];
+      const stem = `${String(index + 1).padStart(2, '0')}-${safeFileStem(journey.name)}`;
+      const screenshotPath = path.join(journeysDir, `${stem}.png`);
+      let stepsCompleted = 0;
+      let screenshot = false;
+      const detachRuntimeIssues = attachRuntimeIssueCollector({
+        page: journeyPage,
+        issues,
+        baseUrl,
+        ignoreConsolePatterns,
+      });
+
+      try {
+        const startUrl = new URL(journey.startPath, baseUrl).toString();
+        await journeyPage.goto(startUrl, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+        await journeyPage.waitForLoadState('networkidle', { timeout: 8_000 }).catch(() => {});
+        await journeyPage.waitForTimeout(waitAfterLoadMs);
+
+        for (const step of journey.steps) {
+          await runJourneyStep(journeyPage, step);
+          stepsCompleted += 1;
+        }
+
+        await journeyPage.waitForTimeout(waitAfterLoadMs);
+        await journeyPage.screenshot({ path: screenshotPath, fullPage: true });
+        screenshot = true;
+        journeyResults.push({
+          name: journey.name,
+          startPath: journey.startPath,
+          url: journeyPage.url(),
+          status: issues.length ? 'RUNTIME_ISSUES' : 'PASSED',
+          issues,
+          stepsCompleted,
+          stepCount: journey.steps.length,
+          screenshot,
+          screenshotFile: `journeys/${stem}.png`,
+        });
+      } catch (error) {
+        await journeyPage
+          .screenshot({ path: screenshotPath, fullPage: true })
+          .then(() => {
+            screenshot = true;
+          })
+          .catch(() => {});
+        journeyResults.push({
+          name: journey.name,
+          startPath: journey.startPath,
+          url: journeyPage.url(),
+          status: 'ERROR',
+          issues,
+          stepsCompleted,
+          stepCount: journey.steps.length,
+          screenshot,
+          screenshotFile: screenshot ? `journeys/${stem}.png` : null,
+          error: safeErrorMessage(error),
+        });
+      } finally {
+        detachRuntimeIssues();
+        await journeyPage.close().catch(() => {});
       }
     }
   } finally {
@@ -368,13 +518,40 @@ async function runVisualQA({
   </div>`;
     })
     .join('\n')}
+  ${
+    journeyResults.length
+      ? `<h2>Configured journeys</h2>${journeyResults
+          .map((result) => {
+            const issueList = (result.issues || [])
+              .map(
+                (issue) =>
+                  `<li><strong>${escapeHtml(issue.type)}</strong>: ${escapeHtml(issue.message)}</li>`,
+              )
+              .join('');
+            return `
+  <div class="row">
+    <div class="meta">
+      <div><strong>${escapeHtml(result.name)}</strong> - ${escapeHtml(result.stepsCompleted)}/${escapeHtml(result.stepCount)} steps</div>
+      <span class="tag">${escapeHtml(result.status)}</span>
+    </div>
+    ${result.error ? `<p><strong>Journey error:</strong> ${escapeHtml(result.error)}</p>` : ''}
+    ${issueList ? `<ul>${issueList}</ul>` : '<p>No runtime issues detected.</p>'}
+    ${result.screenshotFile ? `<img src="${escapeHtml(result.screenshotFile)}" alt="${escapeHtml(result.name)} final state" />` : ''}
+  </div>`;
+          })
+          .join('\n')}`
+      : ''
+  }
 </body>
 </html>`;
 
   await fsp.writeFile(path.join(outDir, 'index.html'), html, 'utf8');
-  await fsp.writeFile(path.join(outDir, 'summary.json'), JSON.stringify({ baseUrl, viewport, results }, null, 2));
+  await fsp.writeFile(
+    path.join(outDir, 'summary.json'),
+    JSON.stringify({ baseUrl, viewport, results, journeys: journeyResults }, null, 2),
+  );
 
-  return { outDir, results };
+  return { outDir, results, journeys: journeyResults };
 }
 
 async function upsertComment({ octokit, owner, repo, prNumber, body }) {
@@ -417,6 +594,12 @@ async function main() {
   const autoPaths = parseBoolean(getInput('auto_paths', 'true'), true);
   const viewport = parseViewport(getInput('viewport', '1280x720'));
   const artifactName = getInput('artifact_name', 'pr-qa-copilot');
+  const workspace = process.env.GITHUB_WORKSPACE || process.cwd();
+  const journeyFile = core.getInput('journey_file') || '';
+  const journeys = await loadJourneys({ workspace, journeyFile });
+  if (journeys.length) {
+    core.info(`Loaded ${journeys.length} configured journey${journeys.length === 1 ? '' : 's'}.`);
+  }
   const requestedWait = Number(getInput('wait_after_load_ms', '750'));
   const waitAfterLoadMs = Math.max(
     0,
@@ -479,8 +662,9 @@ async function main() {
   const visual = await runVisualQA({
     baseUrl,
     paths: selectedPaths,
+    journeys,
     viewport,
-    workspace: process.env.GITHUB_WORKSPACE || process.cwd(),
+    workspace,
     enableDiffs,
     waitAfterLoadMs,
     ignoreConsolePatterns,
@@ -492,16 +676,23 @@ async function main() {
   // Upload is handled by the composite action using actions/upload-artifact.
   core.setOutput('artifact_dir', visual.outDir);
 
-  const issueCount = visual.results.reduce(
+  const routeIssueCount = visual.results.reduce(
     (total, result) => total + (result.issues?.length || 0) + (result.status === 'ERROR' ? 1 : 0),
     0,
   );
+  const journeyIssueCount = visual.journeys.reduce(
+    (total, result) => total + (result.issues?.length || 0) + (result.status === 'ERROR' ? 1 : 0),
+    0,
+  );
+  const issueCount = routeIssueCount + journeyIssueCount;
   const qaPassed = issueCount === 0;
   core.setOutput('qa_passed', String(qaPassed));
   core.setOutput('issue_count', String(issueCount));
   core.setOutput('paths_tested', String(selectedPaths.length));
+  core.setOutput('journeys_tested', String(visual.journeys.length));
 
   const visualMd = renderVisualMarkdown(visual.results);
+  const journeyMd = renderJourneyMarkdown(visual.journeys);
 
   const licenseNotice = enableDiffs
     ? ''
@@ -522,11 +713,16 @@ async function main() {
       ? `\n\n### PR Summary (OpenAI)\n\n${summary.llmMarkdown}`
       : '';
 
-  const verdict = qaPassed ? 'No runtime issues detected' : `${issueCount} runtime issue${issueCount === 1 ? '' : 's'} detected`;
+  const verdict = qaPassed
+    ? 'No QA issues detected'
+    : `${issueCount} QA issue${issueCount === 1 ? '' : 's'} detected`;
   const inferredNotice = inferredPaths.length
     ? `\n\nChanged routes added automatically: ${inferredPaths.map((route) => `\`${route}\``).join(', ')}`
     : '';
-  const commentBody = `## PR QA Copilot\n\n**${verdict}.**\n\n${deterministicMd}${llmMd}\n\n### Runtime and visual QA\n\nBase URL: \`${baseUrl}\`${inferredNotice}\n\n${visualMd}\n\n**Artifact:** \`${artifactName}\` (screenshots, issue details, and gallery)\n${runUrl ? `\nRun: ${runUrl}\n` : ''}\n\n> Runtime QA checks same-origin document and API failures, uncaught page errors, and console errors.${licenseNotice}`;
+  const journeySection = journeyMd
+    ? `\n\n### Critical journeys\n\n${journeyMd}`
+    : '';
+  const commentBody = `## PR QA Copilot\n\n**${verdict}.**\n\n${deterministicMd}${llmMd}\n\n### Runtime and visual QA\n\nBase URL: \`${baseUrl}\`${inferredNotice}\n\n${visualMd}${journeySection}\n\n**Artifact:** \`${artifactName}\` (screenshots, journey final states, issue details, and gallery)\n${runUrl ? `\nRun: ${runUrl}\n` : ''}\n\n> Runtime QA checks same-origin document and API failures, uncaught page errors, and console errors. Configured journeys also fail on unmet UI or URL expectations.${licenseNotice}`;
 
   if (prNumber) {
     await upsertComment({ octokit, owner, repo, prNumber, body: commentBody });
@@ -536,7 +732,7 @@ async function main() {
 
   core.info(`Generated visual QA artifacts at ${visual.outDir}`);
   if (!qaPassed && failOnIssues) {
-    core.setFailed(`PR QA Copilot detected ${issueCount} runtime issue${issueCount === 1 ? '' : 's'}.`);
+    core.setFailed(`PR QA Copilot detected ${issueCount} QA issue${issueCount === 1 ? '' : 's'}.`);
   }
 }
 
