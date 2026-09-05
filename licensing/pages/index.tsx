@@ -2,7 +2,7 @@ import Head from 'next/head';
 import Image from 'next/image';
 
 const pilotEmail =
-  'mailto:adam@achultman.com?subject=PR%20QA%20Copilot%20paid%20pilot&body=Hi%20Adam%2C%0A%0AI%27d%20like%20to%20run%20PR%20QA%20Copilot%20on%20our%20repos.%0A%0ACompany%3A%0ARepos%3A%0APreview%20platform%3A%0A';
+  'mailto:adam@hultman.dev?subject=PR%20QA%20Copilot%20paid%20pilot&body=Hi%20Adam%2C%0A%0AI%27d%20like%20to%20run%20PR%20QA%20Copilot%20on%20our%20repos.%0A%0ACompany%3A%0ARepos%3A%0APreview%20platform%3A%0A';
 
 export default function Home() {
   return (
@@ -184,7 +184,7 @@ export default function Home() {
       <footer className="siteFooter shell">
         <p>PR QA Copilot</p>
         <div>
-          <a href="mailto:adam@achultman.com">adam@achultman.com</a>
+          <a href="mailto:adam@hultman.dev">adam@hultman.dev</a>
           <a href="https://github.com/ACHultman/pr-qa-copilot">GitHub</a>
         </div>
       </footer>

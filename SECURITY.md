@@ -5,7 +5,7 @@ This repo is currently MVP. Use the latest release/tag.
 
 ## Reporting a Vulnerability
 Please report security issues privately:
-- Email: **adam@achultman.com**
+- Email: **adam@hultman.dev**
 
 Include:
 - a description of the issue

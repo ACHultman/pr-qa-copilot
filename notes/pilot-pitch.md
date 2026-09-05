@@ -28,7 +28,7 @@ If you’re open to a 2–3 week pilot, I can onboard you in ~30 minutes. All I 
 Want me to set this up on one repo and show the output on your next PR?
 
 — Adam
-adam@achultman.com | https://t.me/achultman
+adam@hultman.dev | https://t.me/achultman
 
 ## What to ask for (pilot checklist)
 - Repo access for @ACHultman
