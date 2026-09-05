@@ -55,7 +55,7 @@ export default function Home() {
             <p className="heroText">Run sign-in, checkout, and other multi-step journeys against each preview. Get the verdict and failure screenshot on the pull request.</p>
             <div className="heroActions">
               <a className="button primary" href={pilotEmail}>Start a pilot</a>
-              <a className="button secondary" href="https://github.com/ACHultman/pr-qa-copilot">View source</a>
+              <a className="button secondary" href="https://github.com/ACHultman/pr-qa-copilot#quick-start">Install free</a>
             </div>
           </div>
 
