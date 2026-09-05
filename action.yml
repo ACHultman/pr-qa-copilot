@@ -1,5 +1,5 @@
 name: "PR QA Copilot"
-description: "Comments a PR summary and generates a Playwright screenshot pack + optional visual diffs."
+description: "QA preview deployments for runtime failures, broken routes, and visual changes."
 author: "Adam Hultman"
 
 inputs:
@@ -10,9 +10,13 @@ inputs:
     description: "Base URL to run visual QA against (e.g. Vercel preview URL)."
     required: true
   paths:
-    description: "Newline-separated paths to screenshot (e.g. /\n/pricing\n/dashboard)."
+    description: "Newline-separated paths to QA (e.g. /\n/pricing\n/dashboard)."
     required: false
-    default: "/\n/build\n/results"
+    default: "/"
+  auto_paths:
+    description: "Automatically add static Next.js routes changed by the PR."
+    required: false
+    default: "true"
   viewport:
     description: "Viewport as WIDTHxHEIGHT (e.g. 1280x720)."
     required: false
@@ -32,13 +36,24 @@ inputs:
     description: "Name for the uploaded artifact."
     required: false
     default: "pr-qa-copilot"
+  wait_after_load_ms:
+    description: "Extra settle time after page load before QA and screenshots."
+    required: false
+    default: "750"
+  ignore_console_patterns:
+    description: "Newline-separated text or regex patterns for expected console errors."
+    required: false
+  fail_on_issues:
+    description: "Fail the check after posting the report when runtime issues or navigation errors are found."
+    required: false
+    default: "false"
   license_key:
     description: "Optional. Pro license key (enables gated features like visual diffs)."
     required: false
   license_server_url:
-    description: "Optional. License server base URL (default: https://prqacopilot.com)."
+    description: "Optional. License server base URL."
     required: false
-    default: "https://prqacopilot.com"
+    default: "https://pr-qa-copilot.vercel.app"
 
 outputs:
   artifact_name:
@@ -50,6 +65,15 @@ outputs:
   artifact_url:
     description: "Uploaded artifact URL"
     value: ${{ steps.upload.outputs.artifact-url }}
+  qa_passed:
+    description: "true when no runtime or navigation issues were detected"
+    value: ${{ steps.qa.outputs.qa_passed }}
+  issue_count:
+    description: "Number of runtime issues detected across all tested routes"
+    value: ${{ steps.qa.outputs.issue_count }}
+  paths_tested:
+    description: "Number of routes tested"
+    value: ${{ steps.qa.outputs.paths_tested }}
 
 runs:
   using: "composite"
@@ -72,16 +96,21 @@ runs:
         node "./node_modules/playwright/cli.js" install --with-deps chromium
 
     - name: Run PR QA Copilot
+      id: qa
       shell: bash
       env:
         INPUT_GITHUB_TOKEN: ${{ inputs.github_token }}
         INPUT_BASE_URL: ${{ inputs.base_url }}
         INPUT_PATHS: ${{ inputs.paths }}
+        INPUT_AUTO_PATHS: ${{ inputs.auto_paths }}
         INPUT_VIEWPORT: ${{ inputs.viewport }}
         INPUT_OPENAI_API_KEY: ${{ inputs.openai_api_key }}
         INPUT_OPENAI_MODEL: ${{ inputs.openai_model }}
         INPUT_MAX_DIFF_CHARS: ${{ inputs.max_diff_chars }}
         INPUT_ARTIFACT_NAME: ${{ inputs.artifact_name }}
+        INPUT_WAIT_AFTER_LOAD_MS: ${{ inputs.wait_after_load_ms }}
+        INPUT_IGNORE_CONSOLE_PATTERNS: ${{ inputs.ignore_console_patterns }}
+        INPUT_FAIL_ON_ISSUES: ${{ inputs.fail_on_issues }}
         INPUT_LICENSE_KEY: ${{ inputs.license_key }}
         INPUT_LICENSE_SERVER_URL: ${{ inputs.license_server_url }}
       run: |
@@ -89,6 +118,7 @@ runs:
 
     - name: Upload PR QA Copilot artifact
       id: upload
+      if: always()
       uses: actions/upload-artifact@v4
       with:
         name: ${{ inputs.artifact_name }}

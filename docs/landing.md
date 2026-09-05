@@ -1,10 +1,12 @@
 # PR QA Copilot
 
-Automated PR reviews with Playwright.
+Runtime QA for every preview deployment.
 
 **What you get on every PR**
-- A single PR comment with a deterministic summary (and optional OpenAI-enhanced notes)
-- A Playwright screenshot pack + HTML gallery artifact
+- A single PR comment with a route-level QA verdict
+- Console, page, request, and HTTP failure detection
+- Automatic coverage for static Next.js routes changed in the PR
+- A Playwright screenshot pack, JSON results, and HTML gallery artifact
 - Optional **pixel diffs** (Pro) when you commit baselines
 
 ## Why this exists
@@ -17,18 +19,16 @@ PR review bottlenecks are often visual QA bottlenecks:
 PR QA Copilot makes the artifact automatic and keeps it attached to the PR.
 
 ## How it works
-1) Define the key routes you care about (5–15 to start)
-2) On every PR, the Action runs Playwright against your preview URL
-3) It uploads a zip + HTML gallery and posts a comment linking to it
-4) (Pro) If you commit baselines, it generates pixel diffs
+1) Define the core routes you care about
+2) On every PR, the Action adds changed static routes and opens the preview
+3) It records runtime failures, screenshots, and optional pixel diffs
+4) It uploads the evidence and posts one concise report
 
-## Pricing (pilot)
-Pilot pricing scales with team size:
-- **$99/repo/mo** — small teams (≤ 10 engineers)
-- **$149/repo/mo** — mid-size teams (11–40 engineers)
-- **$249/repo/mo** — larger teams (41–100 engineers)
+## Pricing (paid pilot)
+- **$399/month** for up to 3 repositories
+- **$999/month** for agencies with up to 10 repositories
 
-All tiers include onboarding + tuning for flakes/timeouts. Less than a single day of senior engineer time per month.
+Both include onboarding, private-preview/auth setup, and tuning for noisy routes.
 
 ## Next step
 Follow **[`docs/pilot-onboarding.md`](./pilot-onboarding.md)** or jump straight to install:

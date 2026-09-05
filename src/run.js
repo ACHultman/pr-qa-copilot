@@ -1,7 +1,5 @@
 /* eslint-disable no-console */
 
-const core = require('@actions/core');
-const github = require('@actions/github');
 const path = require('path');
 const fs = require('fs');
 const fsp = require('fs/promises');
@@ -9,9 +7,23 @@ const { chromium } = require('playwright');
 const pixelmatch = require('pixelmatch');
 const { PNG } = require('pngjs');
 
-const { parsePaths, parseViewport, safeFileStem, renderVisualMarkdown } = require('./lib');
+const {
+  parsePaths,
+  parseViewport,
+  parseBoolean,
+  inferPathsFromFiles,
+  mergePaths,
+  safeFileStem,
+  renderVisualMarkdown,
+} = require('./lib');
 
 const COMMENT_MARKER = '<!-- pr-qa-copilot -->';
+let core;
+let github;
+
+async function loadActionsToolkit() {
+  [core, github] = await Promise.all([import('@actions/core'), import('@actions/github')]);
+}
 
 function mustGetInput(name) {
   const v = core.getInput(name, { required: true });
@@ -42,6 +54,33 @@ function buildRunUrl(owner, repo) {
   const runId = process.env.GITHUB_RUN_ID;
   if (!runId) return null;
   return `https://github.com/${owner}/${repo}/actions/runs/${runId}`;
+}
+
+function matchesPattern(value, patterns) {
+  return patterns.some((pattern) => {
+    try {
+      return new RegExp(pattern, 'i').test(value);
+    } catch {
+      return value.toLowerCase().includes(pattern.toLowerCase());
+    }
+  });
+}
+
+function sameOrigin(candidate, baseUrl) {
+  try {
+    return new URL(candidate).origin === new URL(baseUrl).origin;
+  } catch {
+    return false;
+  }
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
 }
 
 async function validateLicense({ licenseKey, licenseServerUrl }) {
@@ -145,7 +184,15 @@ ${diffText}
   return { mode: 'openai', deterministic, llmMarkdown };
 }
 
-async function runVisualQA({ baseUrl, paths, viewport, workspace, enableDiffs }) {
+async function runVisualQA({
+  baseUrl,
+  paths,
+  viewport,
+  workspace,
+  enableDiffs,
+  waitAfterLoadMs,
+  ignoreConsolePatterns,
+}) {
   const outDir = path.join(workspace, 'pr-qa-artifacts');
   const screenshotsDir = path.join(outDir, 'screenshots');
   const diffsDir = path.join(outDir, 'diffs');
@@ -167,11 +214,69 @@ async function runVisualQA({ baseUrl, paths, viewport, workspace, enableDiffs })
       const baselinePath = path.join(baselineDir, `${stem}.png`);
       const diffPath = path.join(diffsDir, `${stem}.png`);
 
+      const issues = [];
+      const onConsole = (message) => {
+        if (message.type() !== 'error') return;
+        const text = message.text();
+        // Chromium mirrors HTTP failures to the console; the response handler below
+        // records the useful status and URL without adding a duplicate issue.
+        if (text.startsWith('Failed to load resource: the server responded with a status of')) {
+          return;
+        }
+        if (!matchesPattern(text, ignoreConsolePatterns)) {
+          issues.push({ type: 'console', severity: 'error', message: text.slice(0, 500) });
+        }
+      };
+      const onPageError = (error) => {
+        issues.push({
+          type: 'page',
+          severity: 'error',
+          message: (error?.message || String(error)).slice(0, 500),
+        });
+      };
+      const onResponse = (response) => {
+        const request = response.request();
+        const resourceType = request.resourceType();
+        if (
+          response.status() >= 400 &&
+          ['document', 'fetch', 'xhr'].includes(resourceType) &&
+          sameOrigin(response.url(), baseUrl)
+        ) {
+          issues.push({
+            type: 'http',
+            severity: 'error',
+            message: `${response.status()} ${response.url()}`.slice(0, 500),
+          });
+        }
+      };
+      const onRequestFailed = (request) => {
+        if (
+          ['document', 'fetch', 'xhr'].includes(request.resourceType()) &&
+          sameOrigin(request.url(), baseUrl)
+        ) {
+          issues.push({
+            type: 'network',
+            severity: 'error',
+            message: `${request.failure()?.errorText || 'request failed'} ${request.url()}`.slice(
+              0,
+              500,
+            ),
+          });
+        }
+      };
+
+      page.on('console', onConsole);
+      page.on('pageerror', onPageError);
+      page.on('response', onResponse);
+      page.on('requestfailed', onRequestFailed);
+
       try {
-        await page.goto(url, { waitUntil: 'networkidle', timeout: 45_000 });
-        await page.waitForTimeout(750);
+        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+        await page.waitForLoadState('networkidle', { timeout: 8_000 }).catch(() => {});
+        await page.waitForTimeout(waitAfterLoadMs);
         await page.screenshot({ path: shotPath, fullPage: true });
 
+        let mismatch = null;
         if (enableDiffs && fs.existsSync(baselinePath)) {
           const a = await readPng(baselinePath);
           const b = await readPng(shotPath);
@@ -190,26 +295,31 @@ async function runVisualQA({ baseUrl, paths, viewport, workspace, enableDiffs })
             threshold: 0.12,
           });
 
-          const mismatch = diffPixels / (width * height);
+          mismatch = diffPixels / (width * height);
           await writePng(diffPath, diff);
-
-          results.push({ path: p, url, status: diffPixels === 0 ? 'OK' : 'DIFF', mismatch });
-        } else {
-          results.push({
-            path: p,
-            url,
-            status: enableDiffs ? 'NEW_BASELINE' : 'CAPTURED',
-            mismatch: null,
-          });
         }
+
+        const status = issues.length
+          ? 'RUNTIME_ISSUES'
+          : typeof mismatch === 'number' && mismatch > 0
+            ? 'VISUAL_DIFF'
+            : 'PASSED';
+        results.push({ path: p, url, status, mismatch, issues, screenshot: true });
       } catch (e) {
         results.push({
           path: p,
           url,
           status: 'ERROR',
           mismatch: null,
+          issues,
+          screenshot: false,
           error: e instanceof Error ? e.message : String(e),
         });
+      } finally {
+        page.off('console', onConsole);
+        page.off('pageerror', onPageError);
+        page.off('response', onResponse);
+        page.off('requestfailed', onRequestFailed);
       }
     }
   } finally {
@@ -233,22 +343,27 @@ async function runVisualQA({ baseUrl, paths, viewport, workspace, enableDiffs })
 </head>
 <body>
   <h1>PR QA Copilot — Visual QA</h1>
-  <p>Base URL: <code>${baseUrl}</code></p>
+  <p>Base URL: <code>${escapeHtml(baseUrl)}</code></p>
   ${results
     .map((r) => {
       const stem = safeFileStem(r.path);
       const shotRel = `screenshots/${stem}.png`;
       const diffRel = `diffs/${stem}.png`;
       const mismatch = typeof r.mismatch === 'number' ? `${(r.mismatch * 100).toFixed(2)}%` : '';
+      const issueList = (r.issues || [])
+        .map((issue) => `<li><strong>${escapeHtml(issue.type)}</strong>: ${escapeHtml(issue.message)}</li>`)
+        .join('');
       return `
   <div class="row">
     <div class="meta">
-      <div><strong>${r.path}</strong> — <a href="${r.url}">${r.url}</a></div>
-      <span class="tag">${r.status}${mismatch ? ` · ${mismatch}` : ''}</span>
+      <div><strong>${escapeHtml(r.path)}</strong> - <a href="${escapeHtml(r.url)}">${escapeHtml(r.url)}</a></div>
+      <span class="tag">${escapeHtml(r.status)}${mismatch ? ` · ${mismatch}` : ''}</span>
     </div>
+    ${r.error ? `<p><strong>Navigation error:</strong> ${escapeHtml(r.error)}</p>` : ''}
+    ${issueList ? `<ul>${issueList}</ul>` : '<p>No runtime issues detected.</p>'}
     <div>
-      <img src="${shotRel}" alt="${r.path} screenshot" />
-      ${r.status === 'DIFF' ? `<img src="${diffRel}" alt="${r.path} diff" />` : ''}
+      ${r.screenshot ? `<img src="${shotRel}" alt="${escapeHtml(r.path)} screenshot" />` : ''}
+      ${r.status === 'VISUAL_DIFF' ? `<img src="${diffRel}" alt="${escapeHtml(r.path)} diff" />` : ''}
     </div>
   </div>`;
     })
@@ -295,11 +410,23 @@ async function upsertComment({ octokit, owner, repo, prNumber, body }) {
 }
 
 async function main() {
+  await loadActionsToolkit();
   const token = mustGetInput('github_token');
   const baseUrl = mustGetInput('base_url');
   const paths = parsePaths(getInput('paths', '/'));
+  const autoPaths = parseBoolean(getInput('auto_paths', 'true'), true);
   const viewport = parseViewport(getInput('viewport', '1280x720'));
   const artifactName = getInput('artifact_name', 'pr-qa-copilot');
+  const requestedWait = Number(getInput('wait_after_load_ms', '750'));
+  const waitAfterLoadMs = Math.max(
+    0,
+    Math.min(10_000, Number.isFinite(requestedWait) ? requestedWait : 750),
+  );
+  const ignoreConsolePatterns = String(core.getInput('ignore_console_patterns') || '')
+    .split(/\r?\n/)
+    .map((pattern) => pattern.trim())
+    .filter(Boolean);
+  const failOnIssues = parseBoolean(getInput('fail_on_issues', 'false'));
 
   const openaiApiKey = core.getInput('openai_api_key') || '';
   const openaiModel = getInput('openai_model', 'gpt-4o-mini');
@@ -307,26 +434,26 @@ async function main() {
 
   const ctx = github.context;
   const pr = ctx.payload.pull_request;
-  if (!pr) {
-    core.setFailed('This action must run on pull_request events.');
-    return;
-  }
-
   const owner = ctx.repo.owner;
   const repo = ctx.repo.repo;
-  const prNumber = pr.number;
+  const prNumber = pr?.number || null;
 
   const octokit = github.getOctokit(token);
 
-  core.info(`PR QA Copilot running for ${owner}/${repo}#${prNumber}`);
+  core.info(
+    prNumber
+      ? `PR QA Copilot running for ${owner}/${repo}#${prNumber}`
+      : `PR QA Copilot running manually for ${owner}/${repo}`,
+  );
 
   const licenseKey = core.getInput('license_key') || '';
-  const licenseServerUrl = core.getInput('license_server_url') || 'https://prqacopilot.com';
+  const licenseServerUrl =
+    core.getInput('license_server_url') || 'https://pr-qa-copilot.vercel.app';
   const license = await validateLicense({ licenseKey, licenseServerUrl });
   const enableDiffs = Boolean(license.valid);
 
-  const [summary, visual] = await Promise.all([
-    summarizePR({
+  const summary = prNumber
+    ? await summarizePR({
       octokit,
       owner,
       repo,
@@ -334,21 +461,45 @@ async function main() {
       openaiApiKey: openaiApiKey || null,
       openaiModel,
       maxDiffChars,
-    }),
-    runVisualQA({
-      baseUrl,
-      paths,
-      viewport,
-      workspace: process.env.GITHUB_WORKSPACE || process.cwd(),
-      enableDiffs,
-    }),
-  ]);
+    })
+    : {
+        mode: 'deterministic',
+        deterministic: {
+          title: 'Manual QA run',
+          author: ctx.actor || 'workflow_dispatch',
+          additions: 0,
+          deletions: 0,
+          changedFiles: 0,
+          files: [],
+        },
+      };
+
+  const inferredPaths = autoPaths ? inferPathsFromFiles(summary.deterministic.files) : [];
+  const selectedPaths = mergePaths(paths, inferredPaths);
+  const visual = await runVisualQA({
+    baseUrl,
+    paths: selectedPaths,
+    viewport,
+    workspace: process.env.GITHUB_WORKSPACE || process.cwd(),
+    enableDiffs,
+    waitAfterLoadMs,
+    ignoreConsolePatterns,
+  });
 
   const runUrl = buildRunUrl(owner, repo);
 
   // Artifacts are written to visual.outDir (default: <workspace>/pr-qa-artifacts).
   // Upload is handled by the composite action using actions/upload-artifact.
   core.setOutput('artifact_dir', visual.outDir);
+
+  const issueCount = visual.results.reduce(
+    (total, result) => total + (result.issues?.length || 0) + (result.status === 'ERROR' ? 1 : 0),
+    0,
+  );
+  const qaPassed = issueCount === 0;
+  core.setOutput('qa_passed', String(qaPassed));
+  core.setOutput('issue_count', String(issueCount));
+  core.setOutput('paths_tested', String(selectedPaths.length));
 
   const visualMd = renderVisualMarkdown(visual.results);
 
@@ -358,7 +509,7 @@ async function main() {
 
 ---
 
-> ⚠️ Visual diffs are disabled (no valid license key). Add \`license_key\` to the Action inputs to enable Pro features.`;
+> Visual diffs are disabled. Runtime QA and screenshots still ran; add a valid \`license_key\` to compare against committed baselines.`;
 
   const deterministic = summary.deterministic;
   const deterministicMd = `### PR Summary (deterministic)\n\n- **Title:** ${deterministic.title}\n- **Author:** @${deterministic.author}\n- **Files:** ${deterministic.changedFiles}\n- **Add/Delete:** +${deterministic.additions} / -${deterministic.deletions}\n\nTop files:\n${deterministic.files
@@ -371,17 +522,33 @@ async function main() {
       ? `\n\n### PR Summary (OpenAI)\n\n${summary.llmMarkdown}`
       : '';
 
-  const commentBody = `## PR QA Copilot\n\n${deterministicMd}${llmMd}\n\n### Visual QA\n\nBase URL: \`${baseUrl}\`\n\n${visualMd}\n\n**Artifact:** \`${artifactName}\` (screenshots + gallery)\n${runUrl ? `\nRun: ${runUrl}\n` : ''}\n\n> Tip: Commit baseline screenshots to \`.pr-qa-baseline/*.png\` to enable pixel diffs.${licenseNotice}`;
+  const verdict = qaPassed ? 'No runtime issues detected' : `${issueCount} runtime issue${issueCount === 1 ? '' : 's'} detected`;
+  const inferredNotice = inferredPaths.length
+    ? `\n\nChanged routes added automatically: ${inferredPaths.map((route) => `\`${route}\``).join(', ')}`
+    : '';
+  const commentBody = `## PR QA Copilot\n\n**${verdict}.**\n\n${deterministicMd}${llmMd}\n\n### Runtime and visual QA\n\nBase URL: \`${baseUrl}\`${inferredNotice}\n\n${visualMd}\n\n**Artifact:** \`${artifactName}\` (screenshots, issue details, and gallery)\n${runUrl ? `\nRun: ${runUrl}\n` : ''}\n\n> Runtime QA checks same-origin document and API failures, uncaught page errors, and console errors.${licenseNotice}`;
 
-  await upsertComment({ octokit, owner, repo, prNumber, body: commentBody });
+  if (prNumber) {
+    await upsertComment({ octokit, owner, repo, prNumber, body: commentBody });
+  } else {
+    await core.summary.addRaw(commentBody).write();
+  }
 
   core.info(`Generated visual QA artifacts at ${visual.outDir}`);
+  if (!qaPassed && failOnIssues) {
+    core.setFailed(`PR QA Copilot detected ${issueCount} runtime issue${issueCount === 1 ? '' : 's'}.`);
+  }
 }
 
 module.exports = { main, COMMENT_MARKER };
 
 if (require.main === module) {
   main().catch((e) => {
-    core.setFailed(e instanceof Error ? e.message : String(e));
+    const message = e instanceof Error ? e.message : String(e);
+    if (core) core.setFailed(message);
+    else {
+      console.error(message);
+      process.exitCode = 1;
+    }
   });
 }

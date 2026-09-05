@@ -1,8 +1,8 @@
 {
   "name": "pr-qa-copilot",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "GitHub Action: PR summary + Playwright screenshot pack + visual diffs",
+  "description": "GitHub Action: runtime QA, changed-route checks, screenshots, and visual diffs",
   "main": "dist/index.js",
   "scripts": {
     "test": "node --test",
@@ -11,15 +11,15 @@
     "lint": "node -e \"console.log('no lint configured')\""
   },
   "dependencies": {
-    "@actions/core": "^1.11.1",
-    "@actions/github": "^6.0.0",
+    "@actions/core": "^3.0.1",
+    "@actions/github": "^9.1.1",
     "openai": "^6.27.0",
     "pixelmatch": "^5.3.0",
-    "playwright": "1.55.1",
+    "playwright": "^1.63.0",
     "pngjs": "^7.0.0"
   },
   "devDependencies": {
-    "@playwright/test": "1.55.1",
+    "@playwright/test": "^1.63.0",
     "@types/node": "^20.11.30",
     "@vercel/ncc": "^0.38.3",
     "typescript": "^5.5.4"
