@@ -1,5 +1,5 @@
 name: "PR QA Copilot"
-description: "QA preview deployments for runtime failures, broken routes, and visual changes."
+description: "QA preview deployments for runtime failures, critical journeys, broken routes, and visual changes."
 author: "Adam Hultman"
 branding:
   icon: "check-circle"
@@ -16,6 +16,9 @@ inputs:
     description: "Newline-separated paths to QA (e.g. /\n/pricing\n/dashboard)."
     required: false
     default: "/"
+  journey_file:
+    description: "Optional JSON file containing critical browser journeys to execute."
+    required: false
   auto_paths:
     description: "Automatically add static Next.js routes changed by the PR."
     required: false
@@ -69,14 +72,17 @@ outputs:
     description: "Uploaded artifact URL"
     value: ${{ steps.upload.outputs.artifact-url }}
   qa_passed:
-    description: "true when no runtime or navigation issues were detected"
+    description: "true when no route, runtime, or configured journey issues were detected"
     value: ${{ steps.qa.outputs.qa_passed }}
   issue_count:
-    description: "Number of runtime issues detected across all tested routes"
+    description: "Number of QA issues detected across tested routes and journeys"
     value: ${{ steps.qa.outputs.issue_count }}
   paths_tested:
     description: "Number of routes tested"
     value: ${{ steps.qa.outputs.paths_tested }}
+  journeys_tested:
+    description: "Number of configured browser journeys tested"
+    value: ${{ steps.qa.outputs.journeys_tested }}
 
 runs:
   using: "composite"
@@ -105,6 +111,7 @@ runs:
         INPUT_GITHUB_TOKEN: ${{ inputs.github_token }}
         INPUT_BASE_URL: ${{ inputs.base_url }}
         INPUT_PATHS: ${{ inputs.paths }}
+        INPUT_JOURNEY_FILE: ${{ inputs.journey_file }}
         INPUT_AUTO_PATHS: ${{ inputs.auto_paths }}
         INPUT_VIEWPORT: ${{ inputs.viewport }}
         INPUT_OPENAI_API_KEY: ${{ inputs.openai_api_key }}

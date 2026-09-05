@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+- Added declarative Playwright journeys for critical multi-step flows
+- Added environment-backed journey values for nonproduction test credentials
+- Added journey verdicts and final-state screenshots to PR comments and artifacts
+
 ## 0.2.0
 - Added route-level console, page, request, and HTTP failure detection
 - Added automatic coverage for changed static Next.js routes

@@ -34,3 +34,5 @@ jobs:
           base_url: ${{ github.event.inputs.base_url || 'https://example.com' }}
           paths: |
             ${{ github.event.inputs.paths || '/' }}
+          # Exercise the journey runner on PRs against the stable example.com target.
+          journey_file: ${{ github.event_name == 'pull_request' && '.github/pr-qa-copilot-self-demo.json' || '' }}

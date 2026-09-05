@@ -29,6 +29,8 @@ jobs:
             /
             /pricing
             /docs
+          # Optional: execute stable multi-step acceptance flows.
+          journey_file: .pr-qa-copilot/journeys.json
           # Static Next.js routes changed in the PR are added automatically.
           auto_paths: true
           # Begin in reporting mode. Turn this on after tuning expected noise.
@@ -47,7 +49,29 @@ Common patterns:
 
 Wire it into `base_url`.
 
-## 3) (Optional) Add baselines for diffs
+## 3) (Optional) Add a critical journey
+
+Create `.pr-qa-copilot/journeys.json`:
+
+```json
+{
+  "journeys": [
+    {
+      "name": "Pricing to signup",
+      "startPath": "/pricing",
+      "steps": [
+        { "action": "click", "selector": "a[href='/signup']" },
+        { "action": "expectUrl", "value": "/signup" },
+        { "action": "expectText", "selector": "main", "value": "Create your account" }
+      ]
+    }
+  ]
+}
+```
+
+For authenticated flows, use `${ENV_NAME}` values in the JSON and pass dedicated test credentials as environment variables on the action step. Supported actions are `click`, `fill`, `check`, `select`, `press`, `waitFor`, `expectText`, and `expectUrl`.
+
+## 4) (Optional) Add baselines for diffs
 Commit baseline screenshots:
 
 ```
@@ -56,13 +80,14 @@ Commit baseline screenshots:
 
 When the baseline exists, Pro runs can generate pixel diffs.
 
-## 4) Commit + push
+## 5) Commit + push
 Open a PR and you should see:
 - a PR comment from the bot
 - a route-level verdict covering runtime and visual checks
+- a journey verdict when `journey_file` is configured
 - an artifact zip containing screenshots, issue details, `summary.json`, and `index.html`
 
-## 5) Gate merges when ready
+## 6) Gate merges when ready
 
 After expected console patterns and flaky routes are tuned, set:
 
