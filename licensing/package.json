@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "indexnow": "node ./scripts/submit-indexnow.mjs",
     "start": "next start",
     "lint": "next typegen && tsc --noEmit"
   },
