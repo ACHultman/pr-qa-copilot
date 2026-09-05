@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 0.3.0
 - Added declarative Playwright journeys for critical multi-step flows
 - Added environment-backed journey values for nonproduction test credentials
 - Added journey verdicts and final-state screenshots to PR comments and artifacts
