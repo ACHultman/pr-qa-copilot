@@ -13,6 +13,24 @@ export default function Home() {
           name="description"
           content="Run browser checks against every preview deployment. Catch broken routes, console errors, failed requests, and visual changes before review."
         />
+        <meta name="application-name" content="PR QA Copilot" />
+        <meta name="author" content="Adam Hultman" />
+        <meta name="robots" content="index,follow" />
+        <link rel="canonical" href="https://pr-qa-copilot.vercel.app" />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="PR QA Copilot" />
+        <meta property="og:url" content="https://pr-qa-copilot.vercel.app" />
+        <meta property="og:title" content="PR QA Copilot | Runtime QA on every pull request" />
+        <meta
+          property="og:description"
+          content="Catch broken routes, console errors, failed requests, and visual changes before a human reviews the pull request."
+        />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="PR QA Copilot | Runtime QA on every pull request" />
+        <meta
+          name="twitter:description"
+          content="Runtime and visual QA for every preview deployment, delivered in the pull request."
+        />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
 
