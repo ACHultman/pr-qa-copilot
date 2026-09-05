@@ -1,6 +1,9 @@
 name: "PR QA Copilot"
 description: "QA preview deployments for runtime failures, broken routes, and visual changes."
 author: "Adam Hultman"
+branding:
+  icon: "check-circle"
+  color: "green"
 
 inputs:
   github_token:
