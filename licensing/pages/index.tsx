@@ -8,10 +8,10 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>PR QA Copilot | Runtime QA on every pull request</title>
+        <title>PR QA Copilot | Critical journey QA on every pull request</title>
         <meta
           name="description"
-          content="Run browser checks against every preview deployment. Catch broken routes, console errors, failed requests, and visual changes before review."
+          content="Run critical browser journeys against every preview. Catch broken sign-in, checkout, runtime errors, and failed requests before review."
         />
         <meta name="application-name" content="PR QA Copilot" />
         <meta name="author" content="Adam Hultman" />
@@ -20,16 +20,16 @@ export default function Home() {
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="PR QA Copilot" />
         <meta property="og:url" content="https://pr-qa-copilot.vercel.app" />
-        <meta property="og:title" content="PR QA Copilot | Runtime QA on every pull request" />
+        <meta property="og:title" content="PR QA Copilot | Critical journey QA on every pull request" />
         <meta
           property="og:description"
-          content="Catch broken routes, console errors, failed requests, and visual changes before a human reviews the pull request."
+          content="Prove sign-in, checkout, and other critical flows still work before a human reviews the pull request."
         />
         <meta name="twitter:card" content="summary" />
-        <meta name="twitter:title" content="PR QA Copilot | Runtime QA on every pull request" />
+        <meta name="twitter:title" content="PR QA Copilot | Critical journey QA on every pull request" />
         <meta
           name="twitter:description"
-          content="Runtime and visual QA for every preview deployment, delivered in the pull request."
+          content="Critical journey and runtime QA for every preview deployment, delivered in the pull request."
         />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
@@ -50,9 +50,9 @@ export default function Home() {
       <main id="top">
         <section className="hero shell">
           <div className="heroCopy">
-            <p className="eyebrow">QA for preview deployments</p>
-            <h1>Every PR gets checked before review.</h1>
-            <p className="heroText">Catch broken routes, runtime errors, failed requests, and visual changes in one pull request report.</p>
+            <p className="eyebrow">Critical journey QA for every preview</p>
+            <h1>Know the critical flow still works before review.</h1>
+            <p className="heroText">Run sign-in, checkout, and other multi-step journeys against each preview. Get the verdict and failure screenshot on the pull request.</p>
             <div className="heroActions">
               <a className="button primary" href={pilotEmail}>Start a pilot</a>
               <a className="button secondary" href="https://github.com/ACHultman/pr-qa-copilot">View source</a>
@@ -62,7 +62,7 @@ export default function Home() {
           <figure className="heroVisual">
             <Image
               src="/pr-qa-report-hero.png"
-              alt="Illustrative PR QA report with route, console, network, and visual checks"
+              alt="Illustrative PR QA report with journey, route, console, network, and visual checks"
               width={1536}
               height={1024}
               priority
@@ -73,41 +73,41 @@ export default function Home() {
 
         <section className="signalBar" aria-label="Product capabilities">
           <span>GitHub Actions</span>
-          <span>Playwright</span>
+          <span>Declarative journeys</span>
           <span>Vercel and Netlify previews</span>
           <span>One report per PR</span>
         </section>
 
         <section className="shell product" id="product">
           <div className="sectionIntro">
-            <h2>Review the change, not the setup.</h2>
-            <p>PR QA Copilot opens the preview, inspects the routes that changed, and leaves the evidence where your team already works.</p>
+            <h2>Test the route. Finish the job.</h2>
+            <p>A page can load while the flow behind it is broken. PR QA Copilot opens the preview, completes your critical journeys, and leaves the evidence where your team already works.</p>
           </div>
 
           <div className="featureGrid">
             <article className="feature featureWide">
-              <h3>See failures a screenshot cannot show.</h3>
-              <p>Console exceptions, page crashes, failed fetches, and same-origin HTTP errors are captured with the route that caused them.</p>
-              <div className="codeSample" aria-label="Example runtime report">
-                <code><span>GET</span> /api/subscription</code>
-                <code className="errorLine">500 Internal Server Error</code>
-                <code><span>route</span> /settings/billing</code>
+              <h3>Exercise the flow a page check misses.</h3>
+              <p>Keep bounded browser journeys in your repository. Fill forms, click through the UI, and assert the text and URL that prove the flow completed.</p>
+              <div className="codeSample" aria-label="Example critical journey report">
+                <code><span>journey</span> Sign in and reach billing</code>
+                <code><span>steps</span> 6 / 6 completed</code>
+                <code><span>result</span> PASSED</code>
               </div>
             </article>
 
             <article className="feature featureDark">
+              <h3>See failures a screenshot cannot show.</h3>
+              <p>Console exceptions, page crashes, failed fetches, and same-origin HTTP errors are captured with the route or journey that caused them.</p>
+            </article>
+
+            <article className="feature featureLine">
               <h3>Changed routes join your core paths.</h3>
               <p>Static Next.js routes touched by the pull request are added automatically. Your configured smoke-test routes always run.</p>
             </article>
 
-            <article className="feature featureLine">
-              <h3>One durable artifact.</h3>
-              <p>Each run stores screenshots, issue details, visual diffs, and a browsable HTML gallery.</p>
-            </article>
-
             <article className="feature featureAccent">
-              <h3>Informational first. Blocking when ready.</h3>
-              <p>Start without slowing delivery. Turn on check failures after the routes and expected console patterns are tuned.</p>
+              <h3>One verdict. Evidence when it fails.</h3>
+              <p>Each run stores route screenshots, journey final states, issue details, visual diffs, and a browsable HTML gallery. Begin in reporting mode, then block merges when the signal is clean.</p>
             </article>
           </div>
         </section>
@@ -121,7 +121,7 @@ export default function Home() {
             </article>
             <article>
               <strong>Exercise</strong>
-              <p>Playwright visits core and changed routes after every update.</p>
+              <p>Playwright visits core and changed routes, then completes the journeys you configured.</p>
             </article>
             <article>
               <strong>Review</strong>
@@ -145,8 +145,8 @@ export default function Home() {
               </div>
               <ul>
                 <li>Up to 3 repositories</li>
-                <li>Hands-on setup and route tuning</li>
-                <li>Runtime checks and screenshot artifacts</li>
+                <li>Hands-on journey and route setup</li>
+                <li>Runtime checks and failure screenshots</li>
                 <li>Visual baselines and PR check gating</li>
                 <li>Month-to-month cancellation</li>
               </ul>
@@ -176,7 +176,7 @@ export default function Home() {
           <div className="faqGrid">
             <article>
               <h3>We already use Playwright.</h3>
-              <p>Keep it. This adds automatic route coverage and a reviewer-friendly report to every pull request.</p>
+              <p>Keep it for deep regression coverage. This handles the short critical flows you want on every pull request and gives reviewers one concise report.</p>
             </article>
             <article>
               <h3>Will it block releases?</h3>
