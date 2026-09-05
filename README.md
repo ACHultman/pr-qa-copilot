@@ -161,7 +161,7 @@ Cancelation:
 - Managed GitHub App installation
 
 ## Contact
-- Adam Hultman — **adam@achultman.com**
+- Adam Hultman — **adam@hultman.dev**
 - Telegram — https://t.me/achultman
 
 ## License

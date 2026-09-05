@@ -56,5 +56,5 @@ If your app requires login, we need one of:
 - Ongoing: monthly tuning budget included (see README pricing).
 
 ## Contact
-- Email: adam@achultman.com
+- Email: adam@hultman.dev
 - Telegram: https://t.me/achultman

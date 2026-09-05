@@ -16,7 +16,7 @@ Examples of unacceptable behavior include:
 - Trolling, insulting comments, or sustained disruption
 
 ## Enforcement
-Report issues to: **adam@achultman.com**
+Report issues to: **adam@hultman.dev**
 
 ## Attribution
 This Code of Conduct is adapted from the Contributor Covenant, version 2.1.
