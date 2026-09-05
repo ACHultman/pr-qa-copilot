@@ -19,7 +19,7 @@ jobs:
   pr-qa:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: ACHultman/pr-qa-copilot@v0
         with:
