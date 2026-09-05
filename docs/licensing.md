@@ -1,4 +1,4 @@
-# PR QA Copilot — Stripe licensing (pilot-ready)
+# PR QA Copilot: Stripe licensing
 
 This repo includes a minimal licensing server under `licensing/`.
 
@@ -15,8 +15,8 @@ This repo includes a minimal licensing server under `licensing/`.
    - `STRIPE_PRICE_ID` (the recurring price for Pro)
    - `NEXT_PUBLIC_BASE_URL` (e.g. `https://prqacopilot.com`)
 
-## Buy a license
-Visit the deployed root URL, enter an email, and complete Stripe checkout.
+## Start a paid pilot
+The public site currently routes pilot requests to email so onboarding and scope can be confirmed before billing. Once the correct Stripe account and recurring price are configured, the included checkout endpoint can be connected to a self-serve purchase form.
 
 ## Use the key in the Action
 In the customer repo:

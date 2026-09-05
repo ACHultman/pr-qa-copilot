@@ -8,7 +8,7 @@ export default function Success() {
   return (
     <main style={{ fontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif', padding: 24, maxWidth: 720, margin: '0 auto' }}>
       <Head>
-        <title>PR QA Copilot — Success</title>
+        <title>PR QA Copilot | Success</title>
       </Head>
       <h1 style={{ fontSize: 32, marginTop: 24 }}>Payment complete</h1>
       <p style={{ color: '#4b5563' }}>

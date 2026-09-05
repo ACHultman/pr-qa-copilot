@@ -11,7 +11,7 @@ Signals they feel the pain:
 - “QA is a bottleneck” / “no QA bandwidth”
 
 ## 20-second pitch
-“Every PR gets an automated review comment plus a visual QA pack. We hit your preview URL with Playwright, upload screenshots + a gallery artifact, and optionally do pixel diffs against a committed baseline. It catches UI regressions before merge, with almost zero team effort.”
+“Every PR gets runtime QA before a human opens the preview. We test the routes that changed, catch page, console, API, and network failures, and leave screenshots plus one verdict on the pull request.”
 
 ## What to say (email/DM template)
 Subject: Automated visual QA on every PR (pilot)
@@ -19,9 +19,9 @@ Subject: Automated visual QA on every PR (pilot)
 Hey {{name}} — quick idea for your PR flow.
 
 We ship a lightweight GitHub Action that, on every PR:
-- posts a concise PR summary (optionally OpenAI-enhanced)
-- runs Playwright against your preview URL
-- uploads a screenshots + HTML gallery artifact, and can do pixel diffs with baselines
+- adds the static routes changed by the diff to your core smoke-test paths
+- catches uncaught page errors, console errors, and same-origin request failures
+- leaves one report with screenshots, issue details, and optional visual diffs
 
 If you’re open to a 2–3 week pilot, I can onboard you in ~30 minutes. All I need is a preview URL pattern and a list of routes to cover.
 
@@ -36,10 +36,10 @@ adam@achultman.com | https://t.me/achultman
 - Route list (5–15 to start)
 - Any auth needs (test user / cookie strategy)
 
-## Pricing (pilot)
-$200–$500/mo per repo
-- includes onboarding
-- includes 10 hours/month of tuning + support (flaky routes, auth, timeouts)
+## Pricing (paid pilot)
+- $399/month for up to 3 repositories
+- $999/month for agencies with up to 10 repositories
+- includes onboarding, auth/private-preview setup, and route tuning
 - cancel any time
 
 ## Objections + answers

@@ -19,7 +19,7 @@ jobs:
   pr-qa:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: ACHultman/pr-qa-copilot@v0
         with:
@@ -29,6 +29,10 @@ jobs:
             /
             /pricing
             /docs
+          # Static Next.js routes changed in the PR are added automatically.
+          auto_paths: true
+          # Begin in reporting mode. Turn this on after tuning expected noise.
+          fail_on_issues: false
           # Optional: enable Pro-only features (e.g., pixel diffs)
           license_key: ${{ secrets.PR_QA_LICENSE_KEY }}
 ```
@@ -55,4 +59,15 @@ When the baseline exists, Pro runs can generate pixel diffs.
 ## 4) Commit + push
 Open a PR and you should see:
 - a PR comment from the bot
-- an artifact zip containing screenshots + `index.html`
+- a route-level verdict covering runtime and visual checks
+- an artifact zip containing screenshots, issue details, `summary.json`, and `index.html`
+
+## 5) Gate merges when ready
+
+After expected console patterns and flaky routes are tuned, set:
+
+```yml
+fail_on_issues: true
+```
+
+The artifact upload still runs when the check fails, so reviewers keep the evidence needed to diagnose it.

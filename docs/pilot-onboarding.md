@@ -1,9 +1,9 @@
-# PR QA Copilot — Pilot Onboarding Guide (1-pager)
+# PR QA Copilot: Pilot Onboarding Guide
 
 ## What this is
 PR QA Copilot is a GitHub Action that, on every PR:
 1) posts a PR summary comment (deterministic, or OpenAI-enhanced), and
-2) runs Playwright against a preview URL, uploading a screenshots + HTML gallery artifact (optional pixel diffs if you provide baselines).
+2) runs Playwright against a preview URL, reports runtime failures route by route, and uploads screenshots plus an HTML gallery (with optional pixel diffs if you provide baselines).
 
 ## What we need from you (pilot customer)
 ### 1) Repo access
@@ -20,7 +20,7 @@ We need a stable way to obtain the PR preview URL. Typical options:
 
 If you already have a step that outputs the preview URL, we can wire it into the action input `base_url`.
 
-### 3) A route list
+### 3) Core routes
 A short list of routes that represent your main user journeys, e.g.:
 - `/` (home)
 - `/pricing`
@@ -28,7 +28,7 @@ A short list of routes that represent your main user journeys, e.g.:
 - `/dashboard`
 - `/settings/billing`
 
-Start with **5–15** routes. More is fine, but can increase run time.
+Start with **5–15** routes. Static Next.js routes changed in a pull request are added automatically.
 
 ### 4) Pro features (license key)
 Pixel diffs (and other Pro-only features) require a license key:
@@ -47,8 +47,9 @@ If your app requires login, we need one of:
 1) Add a workflow file (you review + approve).
 2) Set up required secrets/vars.
 3) Run the demo on a PR.
-4) Tune timeouts, waits, and route list.
+4) Tune timeouts, expected console patterns, and the core route list.
 5) (Optional) Add baseline screenshots for key routes to enable diffs.
+6) Turn on merge blocking once the signal is trusted.
 
 ## Support + iteration
 - First week: quick iteration on flaky routes/timeouts.
