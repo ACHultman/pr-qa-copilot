@@ -11,7 +11,7 @@ export default function Home() {
         <title>PR QA Copilot | Critical journey QA on every pull request</title>
         <meta
           name="description"
-          content="Run critical browser journeys against every preview. Catch broken sign-in, checkout, runtime errors, and failed requests before review."
+          content="Automatically find each pull request preview, run critical browser journeys, and catch broken sign-in, checkout, runtime errors, and failed requests before review."
         />
         <meta name="application-name" content="PR QA Copilot" />
         <meta name="author" content="Adam Hultman" />
@@ -23,13 +23,13 @@ export default function Home() {
         <meta property="og:title" content="PR QA Copilot | Critical journey QA on every pull request" />
         <meta
           property="og:description"
-          content="Prove sign-in, checkout, and other critical flows still work before a human reviews the pull request."
+          content="Automatically find the preview and prove sign-in, checkout, and other critical flows still work before a human reviews the pull request."
         />
         <meta name="twitter:card" content="summary" />
         <meta name="twitter:title" content="PR QA Copilot | Critical journey QA on every pull request" />
         <meta
           name="twitter:description"
-          content="Critical journey and runtime QA for every preview deployment, delivered in the pull request."
+          content="Automatic preview discovery, critical journey QA, and runtime evidence delivered in the pull request."
         />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
@@ -52,7 +52,7 @@ export default function Home() {
           <div className="heroCopy">
             <p className="eyebrow">Critical journey QA for every preview</p>
             <h1>Know the critical flow still works before review.</h1>
-            <p className="heroText">Run sign-in, checkout, and other multi-step journeys against each preview. Get the verdict and failure screenshot on the pull request.</p>
+            <p className="heroText">The action finds the successful preview, runs sign-in, checkout, and other multi-step journeys, then puts the verdict and failure screenshot on the pull request.</p>
             <div className="heroActions">
               <a className="button primary" href={pilotEmail}>Start a pilot</a>
               <a className="button secondary" href="https://github.com/ACHultman/pr-qa-copilot#quick-start">Install free</a>
@@ -74,7 +74,7 @@ export default function Home() {
         <section className="signalBar" aria-label="Product capabilities">
           <span>GitHub Actions</span>
           <span>Declarative journeys</span>
-          <span>Vercel and Netlify previews</span>
+          <span>Automatic preview discovery</span>
           <span>One report per PR</span>
         </section>
 
@@ -117,7 +117,7 @@ export default function Home() {
           <div className="workflowTrack">
             <article>
               <strong>Connect</strong>
-              <p>Add one workflow and point it at your preview URL.</p>
+              <p>Add one workflow. The action finds the successful preview attached to the pull request.</p>
             </article>
             <article>
               <strong>Exercise</strong>
