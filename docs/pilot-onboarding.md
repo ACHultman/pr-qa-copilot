@@ -13,12 +13,10 @@ PR QA Copilot is a GitHub Action that, on every PR:
   - read Actions logs
   - comment on PRs
 
-### 2) Preview URL pattern (Vercel/Netlify/etc)
-We need a stable way to obtain the PR preview URL. Typical options:
-- **Vercel**: `https://<project>-git-<branch>-<team>.vercel.app`
-- **Netlify**: provided as a build output / commit status
+### 2) Preview deployment
+The action automatically uses a successful GitHub Deployment attached to the pull request's head commit. The workflow token needs `deployments: read`.
 
-If you already have a step that outputs the preview URL, we can wire it into the action input `base_url`.
+If your host does not publish a GitHub Deployment with an environment URL, we can wire a known preview or staging URL into the `base_url` override.
 
 ### 3) Core routes
 A short list of routes that represent your main user journeys, e.g.:

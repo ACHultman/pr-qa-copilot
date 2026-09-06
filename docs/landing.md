@@ -3,6 +3,7 @@
 Runtime QA for every preview deployment.
 
 **What you get on every PR**
+- Automatic preview discovery from the PR's successful GitHub deployment
 - A single PR comment with a route-level QA verdict
 - Console, page, request, and HTTP failure detection
 - Automatic coverage for static Next.js routes changed in the PR
@@ -19,8 +20,8 @@ PR review bottlenecks are often visual QA bottlenecks:
 PR QA Copilot makes the artifact automatic and keeps it attached to the PR.
 
 ## How it works
-1) Define the core routes you care about
-2) On every PR, the Action adds changed static routes and opens the preview
+1) Define the core routes and critical flows you care about
+2) On every PR, the Action finds the successful preview and adds changed static routes
 3) It records runtime failures, screenshots, and optional pixel diffs
 4) It uploads the evidence and posts one concise report
 

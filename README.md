@@ -1,6 +1,6 @@
 # PR QA Copilot (GitHub Action)
 
-On every PR, open the preview deployment, catch runtime failures, exercise configured critical journeys, add static Next.js routes changed by the diff, and leave one QA report with screenshots and optional visual diffs.
+On every PR, find the successful preview deployment, catch runtime failures, exercise configured critical journeys, add static Next.js routes changed by the diff, and leave one QA report with screenshots and optional visual diffs.
 
 Designed for product teams and agencies that want QA evidence before a human reviewer opens the preview.
 
@@ -19,9 +19,10 @@ Quick links:
   - optional OpenAI summary (risks + QA steps)
   - route-level runtime and visual verdicts
 - Detects static Next.js routes changed by the PR and adds them to your configured smoke-test paths
+- Finds the successful GitHub deployment for the PR head commit and waits up to five minutes for its environment URL
 - Executes declarative browser journeys for flows such as sign-in, checkout, and cancellation
 - Captures uncaught page errors, console errors, failed same-origin requests, and same-origin HTTP 4xx/5xx responses
-- Runs Playwright against a `base_url` and the selected routes
+- Runs Playwright against the discovered preview URL or an explicit `base_url` override
 - Uploads an artifact containing screenshots, issue details, JSON results, and an HTML gallery
 - (Optional) generates pixel diffs if matching baselines exist in `.pr-qa-baseline/`
 - Starts in reporting mode; set `fail_on_issues: true` when the signal is ready to gate merges
@@ -38,6 +39,7 @@ on:
 
 permissions:
   contents: read
+  deployments: read
   pull-requests: write
   actions: write # required for artifact upload
 
@@ -47,12 +49,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # Your pipeline should provide a preview URL (Vercel/Netlify/etc)
-      # and pass it into base_url.
       - uses: ACHultman/pr-qa-copilot@v0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          base_url: ${{ vars.PREVIEW_URL }}
           paths: |
             /
             /pricing
@@ -68,7 +67,8 @@ jobs:
 | Input | Required | Default | Notes |
 |---|---:|---|---|
 | `github_token` | yes | — | Use `${{ secrets.GITHUB_TOKEN }}` |
-| `base_url` | yes | — | Preview/staging URL to screenshot |
+| `base_url` | no | auto | Explicit preview/staging URL override |
+| `preview_wait_seconds` | no | `300` | Wait for a successful PR-head deployment; clamped to 0–900 |
 | `paths` | no | `/` | Newline-separated routes |
 | `journey_file` | no | — | JSON file containing critical browser journeys |
 | `auto_paths` | no | `true` | Add static Next.js routes changed by the PR |
@@ -115,7 +115,6 @@ Pass test credentials as step environment variables; `${NAME}` placeholders are 
     QA_PASSWORD: ${{ secrets.PR_QA_TEST_PASSWORD }}
   with:
     github_token: ${{ secrets.GITHUB_TOKEN }}
-    base_url: ${{ vars.PREVIEW_URL }}
     journey_file: .pr-qa-copilot/journeys.json
 ```
 
@@ -158,7 +157,7 @@ Open/update a PR and the action runs automatically (see `.github/workflows/self-
 ## Pilot onboarding (what we need)
 If you’re piloting this on a customer repo, we typically need:
 - repo access for **@ACHultman**
-- a stable way to obtain the **preview URL** in CI (Vercel/Netlify/etc)
+- a GitHub Deployment with an environment URL, or an explicit **preview URL** override
 - a **route list** (start with 5–15)
 - any **auth requirements** (test user, cookie/token injection strategy)
 
@@ -191,7 +190,8 @@ Cancelation:
   - Prefer a stable staging/preview URL
   - Avoid routes with heavy animations; add small waits where needed
 - **Missing env vars / inputs**
-  - `base_url` and `github_token` are required inputs
+  - `github_token` is required
+  - If automatic discovery cannot find a successful GitHub Deployment, grant `deployments: read`, increase `preview_wait_seconds`, or pass `base_url`
   - OpenAI summary requires `openai_api_key` (GitHub Secret)
 - **Artifact not uploaded**
   - Ensure workflow has permission to upload artifacts (default in GitHub-hosted runners)
