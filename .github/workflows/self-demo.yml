@@ -18,6 +18,7 @@ on:
 
 permissions:
   contents: read
+  deployments: read
   pull-requests: write
   actions: write # required for artifact upload
 
@@ -27,11 +28,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # Demo target: example.com (always up). Replace with your Vercel/Netlify preview URL.
+      # Pull requests exercise automatic preview discovery. Manual runs use the supplied URL.
       - uses: ./. 
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          base_url: ${{ github.event.inputs.base_url || 'https://example.com' }}
+          base_url: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.base_url || '' }}
           paths: |
             ${{ github.event.inputs.paths || '/' }}
           # Exercise the journey runner on PRs against the stable example.com target.

@@ -19,6 +19,7 @@ const {
   resolveJourneyValue,
   renderJourneyMarkdown,
 } = require('./lib');
+const { normalizeHttpUrl, parsePreviewWaitSeconds, discoverPreviewUrl } = require('./preview');
 
 const COMMENT_MARKER = '<!-- pr-qa-copilot -->';
 let core;
@@ -589,7 +590,7 @@ async function upsertComment({ octokit, owner, repo, prNumber, body }) {
 async function main() {
   await loadActionsToolkit();
   const token = mustGetInput('github_token');
-  const baseUrl = mustGetInput('base_url');
+  const configuredBaseUrl = core.getInput('base_url') || '';
   const paths = parsePaths(getInput('paths', '/'));
   const autoPaths = parseBoolean(getInput('auto_paths', 'true'), true);
   const viewport = parseViewport(getInput('viewport', '1280x720'));
@@ -622,6 +623,47 @@ async function main() {
   const prNumber = pr?.number || null;
 
   const octokit = github.getOctokit(token);
+
+  let baseUrl = normalizeHttpUrl(configuredBaseUrl);
+  if (configuredBaseUrl && !baseUrl) {
+    throw new Error('base_url must be a valid http:// or https:// URL.');
+  }
+  if (!baseUrl) {
+    if (!pr?.head?.sha) {
+      throw new Error(
+        'base_url is required outside a pull_request run because there is no PR head deployment to discover.',
+      );
+    }
+    const previewWaitSeconds = parsePreviewWaitSeconds(
+      getInput('preview_wait_seconds', '300'),
+    );
+    core.info(
+      'Discovering a successful GitHub preview deployment for ' +
+        pr.head.sha.slice(0, 7) +
+        ' (up to ' +
+        previewWaitSeconds +
+        's).',
+    );
+    const preview = await discoverPreviewUrl({
+      octokit,
+      owner,
+      repo,
+      sha: pr.head.sha,
+      waitSeconds: previewWaitSeconds,
+      log: (message) => core.info(message),
+    });
+    baseUrl = preview.url;
+    core.info(
+      'Using ' +
+        (preview.deployment.environment || 'preview') +
+        ' deployment ' +
+        preview.deployment.id +
+        ': ' +
+        baseUrl,
+    );
+  } else {
+    core.info('Using configured base URL: ' + baseUrl);
+  }
 
   core.info(
     prNumber
@@ -687,6 +729,7 @@ async function main() {
   const issueCount = routeIssueCount + journeyIssueCount;
   const qaPassed = issueCount === 0;
   core.setOutput('qa_passed', String(qaPassed));
+  core.setOutput('tested_url', baseUrl);
   core.setOutput('issue_count', String(issueCount));
   core.setOutput('paths_tested', String(selectedPaths.length));
   core.setOutput('journeys_tested', String(visual.journeys.length));

@@ -10,8 +10,12 @@ inputs:
     description: "GitHub token used to comment on PRs (defaults to github.token)."
     required: true
   base_url:
-    description: "Base URL to run visual QA against (e.g. Vercel preview URL)."
-    required: true
+    description: "Optional preview/staging URL override. By default, discovers the PR head's successful GitHub deployment."
+    required: false
+  preview_wait_seconds:
+    description: "How long to wait for an automatically discovered preview deployment (0-900 seconds)."
+    required: false
+    default: "300"
   paths:
     description: "Newline-separated paths to QA (e.g. /\n/pricing\n/dashboard)."
     required: false
@@ -83,6 +87,9 @@ outputs:
   journeys_tested:
     description: "Number of configured browser journeys tested"
     value: ${{ steps.qa.outputs.journeys_tested }}
+  tested_url:
+    description: "Resolved preview or staging URL tested by the action"
+    value: ${{ steps.qa.outputs.tested_url }}
 
 runs:
   using: "composite"
@@ -108,6 +115,7 @@ runs:
       id: qa
       shell: bash
       env:
+        INPUT_PREVIEW_WAIT_SECONDS: ${{ inputs.preview_wait_seconds }}
         INPUT_GITHUB_TOKEN: ${{ inputs.github_token }}
         INPUT_BASE_URL: ${{ inputs.base_url }}
         INPUT_PATHS: ${{ inputs.paths }}

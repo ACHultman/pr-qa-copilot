@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: read
+  deployments: read
   pull-requests: write
   actions: write # required for artifact upload
 
@@ -24,7 +25,6 @@ jobs:
       - uses: ACHultman/pr-qa-copilot@v0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          base_url: ${{ vars.PREVIEW_URL }}
           paths: |
             /
             /pricing
@@ -39,15 +39,19 @@ jobs:
           license_key: ${{ secrets.PR_QA_LICENSE_KEY }}
 ```
 
-## 2) Provide a preview URL
-The action needs a URL it can visit in CI.
+## 2) Let the action find the preview
 
-Common patterns:
-- Vercel preview URL (best)
-- Netlify deploy preview
-- A stable staging URL
+By default, the action waits up to five minutes for a successful GitHub Deployment attached to the pull request's head commit, then uses that deployment's environment URL. Keep `deployments: read` in the workflow permissions.
 
-Wire it into `base_url`.
+If your host does not publish GitHub Deployments, pass a known URL instead:
+
+```yml
+with:
+  github_token: ${{ secrets.GITHUB_TOKEN }}
+  base_url: ${{ vars.PREVIEW_URL }}
+```
+
+Set `preview_wait_seconds` to change the discovery window from its 300-second default, up to 900 seconds.
 
 ## 3) (Optional) Add a critical journey
 
