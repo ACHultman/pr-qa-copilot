@@ -27,7 +27,7 @@ Quick links:
 - (Optional) generates pixel diffs if matching baselines exist in `.pr-qa-baseline/`
 - Starts in reporting mode; set `fail_on_issues: true` when the signal is ready to gate merges
 
-## Install / Usage
+## Quick start
 Create `.github/workflows/pr-qa-copilot.yml`:
 
 ```yml
