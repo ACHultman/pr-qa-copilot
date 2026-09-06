@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.4.0
+- Added automatic preview discovery from successful GitHub Deployments attached to the pull request head commit
+- Prefer transient and non-production deployments, and reject stale environment URLs when the latest deployment status is not successful
+- Made `base_url` an optional override and added a bounded `preview_wait_seconds` input
+- Added a `tested_url` output and an end-to-end self-test for deployment discovery
+
 ## 0.3.0
 - Added declarative Playwright journeys for critical multi-step flows
 - Added environment-backed journey values for nonproduction test credentials
