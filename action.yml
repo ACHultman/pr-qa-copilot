@@ -16,6 +16,9 @@ inputs:
     description: "How long to wait for an automatically discovered preview deployment (0-900 seconds)."
     required: false
     default: "300"
+  vercel_protection_bypass:
+    description: "Optional Vercel Protection Bypass for Automation secret for protected previews."
+    required: false
   paths:
     description: "Newline-separated paths to QA (e.g. /\n/pricing\n/dashboard)."
     required: false
@@ -116,6 +119,7 @@ runs:
       shell: bash
       env:
         INPUT_PREVIEW_WAIT_SECONDS: ${{ inputs.preview_wait_seconds }}
+        INPUT_VERCEL_PROTECTION_BYPASS: ${{ inputs.vercel_protection_bypass }}
         INPUT_GITHUB_TOKEN: ${{ inputs.github_token }}
         INPUT_BASE_URL: ${{ inputs.base_url }}
         INPUT_PATHS: ${{ inputs.paths }}

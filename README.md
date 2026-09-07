@@ -69,6 +69,7 @@ jobs:
 | `github_token` | yes | — | Use `${{ secrets.GITHUB_TOKEN }}` |
 | `base_url` | no | auto | Explicit preview/staging URL override |
 | `preview_wait_seconds` | no | `300` | Wait for a successful PR-head deployment; clamped to 0–900 |
+| `vercel_protection_bypass` | no | — | Vercel Protection Bypass for Automation secret for protected previews |
 | `paths` | no | `/` | Newline-separated routes |
 | `journey_file` | no | — | JSON file containing critical browser journeys |
 | `auto_paths` | no | `true` | Add static Next.js routes changed by the PR |
@@ -82,6 +83,19 @@ jobs:
 | `max_diff_chars` | no | `12000` | PR diff truncation limit for LLM |
 | `license_key` | no | — | Pro license key (enables gated features like pixel diffs) |
 | `license_server_url` | no | `https://pr-qa-copilot.vercel.app` | License server base URL for key validation |
+
+### Protected Vercel previews
+
+Keep Vercel Authentication enabled and pass the project's [Protection Bypass for Automation](https://vercel.com/docs/deployment-protection/methods-to-bypass-deployment-protection/protection-bypass-automation) secret from GitHub Actions:
+
+```yml
+- uses: ACHultman/pr-qa-copilot@v0
+  with:
+    github_token: ${{ secrets.GITHUB_TOKEN }}
+    vercel_protection_bypass: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+```
+
+The action masks the value and sends Vercel's documented bypass headers only to requests on the preview origin. If a protected preview redirects to Vercel Authentication without a valid bypass, the report returns an actionable error instead of testing the login wall.
 
 ### Critical journeys
 
@@ -192,6 +206,7 @@ Cancelation:
 - **Missing env vars / inputs**
   - `github_token` is required
   - If automatic discovery cannot find a successful GitHub Deployment, grant `deployments: read`, increase `preview_wait_seconds`, or pass `base_url`
+  - If the preview redirects to Vercel Authentication, pass `vercel_protection_bypass` from a GitHub Actions secret
   - OpenAI summary requires `openai_api_key` (GitHub Secret)
 - **Artifact not uploaded**
   - Ensure workflow has permission to upload artifacts (default in GitHub-hosted runners)

@@ -18,6 +18,8 @@ The action automatically uses a successful GitHub Deployment attached to the pul
 
 If your host does not publish a GitHub Deployment with an environment URL, we can wire a known preview or staging URL into the `base_url` override.
 
+For Vercel Authentication, store the project's Protection Bypass for Automation value in GitHub Actions and pass it through `vercel_protection_bypass`. The action masks the value and scopes the header to the preview origin.
+
 ### 3) Core routes
 A short list of routes that represent your main user journeys, e.g.:
 - `/` (home)
@@ -33,7 +35,7 @@ Pixel diffs (and other Pro-only features) require a license key:
 - You&apos;ll set `license_key` in the action inputs (usually wired from a repo secret like `PR_QA_LICENSE_KEY`).
 - Without a valid key, the action still captures screenshots + uploads the gallery artifact, but skips diffs.
 
-## 5) Auth requirements (if any)
+### 5) Auth requirements (if any)
 If your app requires login, we need one of:
 - a test user credential stored in GitHub Secrets, or
 - a magic-link flow we can automate, or

@@ -4,6 +4,7 @@ Runtime QA for every preview deployment.
 
 **What you get on every PR**
 - Automatic preview discovery from the PR's successful GitHub deployment
+- Protected Vercel preview access through an origin-scoped automation bypass
 - A single PR comment with a route-level QA verdict
 - Console, page, request, and HTTP failure detection
 - Automatic coverage for static Next.js routes changed in the PR
