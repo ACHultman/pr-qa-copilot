@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.5.0
+- Added protected Vercel preview access through `vercel_protection_bypass`
+- Scoped bypass headers to the preview origin and masked the secret in Actions logs
+- Added an actionable error for unconfigured Vercel Authentication redirects
+
 ## 0.4.0
 - Added automatic preview discovery from successful GitHub Deployments attached to the pull request head commit
 - Prefer transient and non-production deployments, and reject stale environment URLs when the latest deployment status is not successful
