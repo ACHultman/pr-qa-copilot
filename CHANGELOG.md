@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.5.1
+- Normalize visible whitespace in `expectText` journey assertions
+- Show journey failure details directly in the pull request report
+
 ## 0.5.0
 - Added protected Vercel preview access through `vercel_protection_bypass`
 - Scoped bypass headers to the preview origin and masked the secret in Actions logs

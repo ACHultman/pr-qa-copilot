@@ -24,6 +24,10 @@ function parseBoolean(value, fallback = false) {
   return fallback;
 }
 
+function normalizeVisibleText(value) {
+  return String(value ?? '').replace(/\s+/g, ' ').trim();
+}
+
 function inferPathsFromFiles(files) {
   const paths = [];
   const routePatterns = [
@@ -222,13 +226,16 @@ function resolveJourneyValue(value, environment = process.env) {
 
 function renderJourneyMarkdown(results) {
   if (!results?.length) return '';
-  const header = `| Journey | Result | Steps | Runtime issues |\n|---|---:|---:|---:|`;
+  const header = `| Journey | Result | Steps | Runtime issues | Failure |\n|---|---:|---:|---:|---|`;
   const rows = results
     .map((result) => {
       const issues = Array.isArray(result.issues) ? result.issues.length : 0;
       const steps = Number(result.stepsCompleted || 0);
       const name = String(result.name || '').replace(/\r?\n/g, ' ').replaceAll('|', '\\|');
-      return `| ${name} | **${result.status}** | ${steps}/${result.stepCount} | ${issues || 'None'} |`;
+      const failure = result.error
+        ? normalizeVisibleText(result.error).replaceAll('|', '\\|').slice(0, 240)
+        : '—';
+      return `| ${name} | **${result.status}** | ${steps}/${result.stepCount} | ${issues || 'None'} | ${failure} |`;
     })
     .join('\n');
   return `${header}\n${rows}`;
@@ -238,6 +245,7 @@ module.exports = {
   parsePaths,
   parseViewport,
   parseBoolean,
+  normalizeVisibleText,
   inferPathsFromFiles,
   mergePaths,
   safeFileStem,
