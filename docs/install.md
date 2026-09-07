@@ -53,6 +53,16 @@ with:
 
 Set `preview_wait_seconds` to change the discovery window from its 300-second default, up to 900 seconds.
 
+For a preview protected by Vercel Authentication, enable [Protection Bypass for Automation](https://vercel.com/docs/deployment-protection/methods-to-bypass-deployment-protection/protection-bypass-automation) in Vercel and store its value as a GitHub Actions secret:
+
+```yml
+with:
+  github_token: ${{ secrets.GITHUB_TOKEN }}
+  vercel_protection_bypass: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+```
+
+The bypass value is masked and scoped to requests on the preview origin.
+
 ## 3) (Optional) Add a critical journey
 
 Create `.pr-qa-copilot/journeys.json`:

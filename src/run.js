@@ -20,6 +20,11 @@ const {
   renderJourneyMarkdown,
 } = require('./lib');
 const { normalizeHttpUrl, parsePreviewWaitSeconds, discoverPreviewUrl } = require('./preview');
+const {
+  buildVercelRequestHeaders,
+  attachScopedRequestHeaders,
+  assertNoVercelProtectionRedirect,
+} = require('./request-headers');
 
 const COMMENT_MARKER = '<!-- pr-qa-copilot -->';
 let core;
@@ -327,6 +332,7 @@ async function runVisualQA({
   enableDiffs,
   waitAfterLoadMs,
   ignoreConsolePatterns,
+  requestHeaders,
 }) {
   const outDir = path.join(workspace, 'pr-qa-artifacts');
   const screenshotsDir = path.join(outDir, 'screenshots');
@@ -343,6 +349,7 @@ async function runVisualQA({
 
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport });
+  await attachScopedRequestHeaders({ page, baseUrl, requestHeaders });
 
   try {
     for (const p of paths) {
@@ -363,6 +370,7 @@ async function runVisualQA({
       try {
         await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45_000 });
         await page.waitForLoadState('networkidle', { timeout: 8_000 }).catch(() => {});
+        assertNoVercelProtectionRedirect(page.url(), baseUrl);
         await page.waitForTimeout(waitAfterLoadMs);
         await page.screenshot({ path: shotPath, fullPage: true });
 
@@ -412,6 +420,7 @@ async function runVisualQA({
 
     for (const [index, journey] of journeys.entries()) {
       const journeyPage = await browser.newPage({ viewport });
+      await attachScopedRequestHeaders({ page: journeyPage, baseUrl, requestHeaders });
       const issues = [];
       const stem = `${String(index + 1).padStart(2, '0')}-${safeFileStem(journey.name)}`;
       const screenshotPath = path.join(journeysDir, `${stem}.png`);
@@ -428,6 +437,7 @@ async function runVisualQA({
         const startUrl = new URL(journey.startPath, baseUrl).toString();
         await journeyPage.goto(startUrl, { waitUntil: 'domcontentloaded', timeout: 45_000 });
         await journeyPage.waitForLoadState('networkidle', { timeout: 8_000 }).catch(() => {});
+        assertNoVercelProtectionRedirect(journeyPage.url(), baseUrl);
         await journeyPage.waitForTimeout(waitAfterLoadMs);
 
         for (const step of journey.steps) {
@@ -611,6 +621,12 @@ async function main() {
     .map((pattern) => pattern.trim())
     .filter(Boolean);
   const failOnIssues = parseBoolean(getInput('fail_on_issues', 'false'));
+  const vercelProtectionBypass = core.getInput('vercel_protection_bypass') || '';
+  if (vercelProtectionBypass) {
+    core.setSecret(vercelProtectionBypass);
+    core.info('Vercel protected-preview access enabled.');
+  }
+  const requestHeaders = buildVercelRequestHeaders(vercelProtectionBypass);
 
   const openaiApiKey = core.getInput('openai_api_key') || '';
   const openaiModel = getInput('openai_model', 'gpt-4o-mini');
@@ -710,6 +726,7 @@ async function main() {
     enableDiffs,
     waitAfterLoadMs,
     ignoreConsolePatterns,
+    requestHeaders,
   });
 
   const runUrl = buildRunUrl(owner, repo);

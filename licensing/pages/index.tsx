@@ -188,7 +188,7 @@ export default function Home() {
             </article>
             <article>
               <h3>Can it reach private previews?</h3>
-              <p>Yes, when the GitHub runner can authenticate to the preview or reach your internal staging environment.</p>
+              <p>Yes. For Vercel Authentication, pass a Protection Bypass for Automation secret. It is masked and sent only to the preview origin.</p>
             </article>
           </div>
         </section>
