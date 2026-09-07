@@ -11,6 +11,7 @@ const {
   parsePaths,
   parseViewport,
   parseBoolean,
+  normalizeVisibleText,
   inferPathsFromFiles,
   mergePaths,
   safeFileStem,
@@ -202,8 +203,8 @@ async function runJourneyStep(page, step) {
       return;
     case 'expectText': {
       await locator.waitFor({ state: 'visible', timeout });
-      const expected = resolveJourneyValue(step.value);
-      const text = (await locator.textContent({ timeout })) || '';
+      const expected = normalizeVisibleText(resolveJourneyValue(step.value));
+      const text = normalizeVisibleText((await locator.textContent({ timeout })) || '');
       if (!text.includes(expected)) {
         throw new Error(`Expected text was not found in selector "${step.selector}".`);
       }

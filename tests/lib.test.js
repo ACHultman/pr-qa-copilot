@@ -5,6 +5,7 @@ const {
   parsePaths,
   parseViewport,
   parseBoolean,
+  normalizeVisibleText,
   inferPathsFromFiles,
   mergePaths,
   safeFileStem,
@@ -27,6 +28,13 @@ test('parseBoolean accepts common action input values', () => {
   assert.equal(parseBoolean('true'), true);
   assert.equal(parseBoolean('OFF', true), false);
   assert.equal(parseBoolean('', true), true);
+});
+
+test('normalizeVisibleText collapses layout whitespace for human-readable assertions', () => {
+  assert.equal(
+    normalizeVisibleText(' I like software that\n  earns its place\t on a busy day. '),
+    'I like software that earns its place on a busy day.',
+  );
 });
 
 test('inferPathsFromFiles finds static Next.js routes and skips dynamic/API routes', () => {
@@ -137,9 +145,13 @@ test('renderJourneyMarkdown reports completed steps and runtime issues', () => {
       stepsCompleted: 2,
       stepCount: 4,
       issues: [{ type: 'http' }],
+      error: 'Expected text was\n  not found.',
     },
   ]);
 
-  assert.match(markdown, /\| Pricing to checkout \| \*\*PASSED\*\* \| 3\/3 \| None \|/);
-  assert.match(markdown, /\| Cancel subscription \| \*\*ERROR\*\* \| 2\/4 \| 1 \|/);
+  assert.match(markdown, /\| Pricing to checkout \| \*\*PASSED\*\* \| 3\/3 \| None \| — \|/);
+  assert.match(
+    markdown,
+    /\| Cancel subscription \| \*\*ERROR\*\* \| 2\/4 \| 1 \| Expected text was not found\. \|/,
+  );
 });
