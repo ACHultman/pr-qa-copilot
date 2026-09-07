@@ -11,7 +11,6 @@ const {
   parsePaths,
   parseViewport,
   parseBoolean,
-  normalizeVisibleText,
   inferPathsFromFiles,
   mergePaths,
   safeFileStem,
@@ -180,32 +179,36 @@ async function loadJourneys({ workspace, journeyFile }) {
 
 async function runJourneyStep(page, step) {
   const timeout = step.timeoutMs || 10_000;
-  const locator = step.selector ? page.locator(step.selector).first() : null;
+  const locator = () => page.locator(step.selector).first();
 
   switch (step.action) {
     case 'click':
-      await locator.click({ timeout });
+      await locator().click({ timeout });
       return;
     case 'fill':
-      await locator.fill(resolveJourneyValue(step.value), { timeout });
+      await locator().fill(resolveJourneyValue(step.value), { timeout });
       return;
     case 'check':
-      await locator.check({ timeout });
+      await locator().check({ timeout });
       return;
     case 'select':
-      await locator.selectOption(resolveJourneyValue(step.value), { timeout });
+      await locator().selectOption(resolveJourneyValue(step.value), { timeout });
       return;
     case 'press':
-      await locator.press(resolveJourneyValue(step.value), { timeout });
+      await locator().press(resolveJourneyValue(step.value), { timeout });
       return;
     case 'waitFor':
-      await locator.waitFor({ state: 'visible', timeout });
+      await locator().waitFor({ state: 'visible', timeout });
       return;
     case 'expectText': {
-      await locator.waitFor({ state: 'visible', timeout });
-      const expected = normalizeVisibleText(resolveJourneyValue(step.value));
-      const text = normalizeVisibleText((await locator.textContent({ timeout })) || '');
-      if (!text.includes(expected)) {
+      const expected = resolveJourneyValue(step.value);
+      try {
+        await page
+          .locator(step.selector)
+          .filter({ hasText: expected })
+          .first()
+          .waitFor({ state: 'visible', timeout });
+      } catch {
         throw new Error(`Expected text was not found in selector "${step.selector}".`);
       }
       return;
@@ -797,7 +800,7 @@ async function main() {
   }
 }
 
-module.exports = { main, COMMENT_MARKER };
+module.exports = { main, runJourneyStep, COMMENT_MARKER };
 
 if (require.main === module) {
   main().catch((e) => {

@@ -1,6 +1,6 @@
 {
   "name": "pr-qa-copilot",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "private": true,
   "description": "GitHub Action: critical journeys, runtime QA, changed-route checks, screenshots, and visual diffs",
   "main": "dist/index.js",

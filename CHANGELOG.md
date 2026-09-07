@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.5.2
+- Make `expectText` wait and retry across client-side navigation before failing
+
 ## 0.5.1
 - Normalize visible whitespace in `expectText` journey assertions
 - Show journey failure details directly in the pull request report
