@@ -128,6 +128,10 @@ export default function Home() {
               <p>The pull request gets a concise verdict plus full evidence.</p>
             </article>
           </div>
+          <p className="workflowProof">
+            Our own install: on hultman.dev, the action discovered a protected Vercel preview and passed four routes and a three-step journey.{' '}
+            <a href="https://github.com/ACHultman/achultman-web/pull/131">See the pull request →</a>
+          </p>
         </section>
 
         <section className="pricing shell" id="pricing">

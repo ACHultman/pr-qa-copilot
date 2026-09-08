@@ -10,6 +10,7 @@ Designed for product teams and agencies that want QA evidence before a human rev
 
 Quick links:
 - Product site: **[pr-qa-copilot.vercel.app](https://pr-qa-copilot.vercel.app)**
+- Our own install: **[protected Vercel preview report](https://github.com/ACHultman/achultman-web/pull/131)**
 - Landing copy: **[`docs/landing.md`](./docs/landing.md)**
 - Install (5 minutes): **[`docs/install.md`](./docs/install.md)**
 
@@ -158,6 +159,9 @@ Mapping:
 See `.pr-qa-baseline/README.md`.
 
 ## Demo
+
+We run the action on our own hultman.dev repository. See it discover and test a protected Vercel preview on [ACHultman/achultman-web#131](https://github.com/ACHultman/achultman-web/pull/131): four routes passed and the configured journey completed 3/3.
+
 ### Option A — run the built-in self-demo workflow
 This repo includes a workflow you can run via GitHub UI or CLI:
 
